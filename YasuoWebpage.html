@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<html charset="ANSI">
+
+<head>
+	<title>Yasuo Commands List</title>
+	<link rel="icon" href="Webpage/SteelTempestIcon.png" type="image/png">
+</head>
+
+<body>
+
+<style>
+	body {
+	background-image: linear-gradient(to right, #0d1c5d, #891215);
+	/* #0d1c5d Colour signifies the Yasuo image (blue) & #891215 signifies the Zed image (red)*/
+	margin: 0px;
+	}
+	img {
+	display: block;
+	vertical-align: bottom;
+	justify-content: center;
+	margin-left: auto; 
+	margin-right: auto;
+	width: 300px;
+	height: 300px;
+	background-color: black; 
+	}
+	.Pictures {
+	display: flex;
+	justify-content: center;
+	margin-left: auto; 
+	margin-right: auto;
+	}
+	.Leftpic {background-color: black; border-radius: 25px 0px 0px 25px; padding: 15px}
+	.Rightpic {background-color: black; border-radius: 0px 25px 25px 0px; padding: 15px}
+	h1 {
+	text-align: center;
+	font-family: Arial, Helvetica, sans-serif;
+	padding: 20px; 
+	background-color: #a71e21; 
+	color: black; 
+	max-width: 750px; 
+	margin-left: auto; 
+	margin-right: auto;
+	border-radius: 10px;
+	border: 2px;
+	}
+	h2 {
+	text-align: justify;
+	text-align-last: center;
+	line-height: 1; 
+	font-size: 24px;
+	font-family: Arial, Helvetica, sans-serif;
+	text-shadow: 1px 1px 1px #8B7500;
+	color: black; 	
+	background-color: #D37A11; /* Nice Orange, inbetween of Yellow and red */
+	max-width: 900px;
+	border-radius: 10px 10px 0px 0px;
+	border-bottom: 2px solid black;
+	padding: 10px;
+	margin-left: auto; 
+	margin-right: auto;
+	margin-bottom: 0;
+	}
+	p {
+	text-align: left;
+	line-height: 1.5; 
+	font-size: 20px;
+	font-family: Arial, Helvetica, sans-serif;
+	text-shadow: 1px 1px 1px #8B7500;
+	color: black; 	
+	background-color: #FFD700; /* Nice yellow, inbetween of blue and red */
+	max-width: 900px;
+	border-radius: 0px 0px 10px 10px;
+	padding: 10px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 0;
+	margin-bottom: 0;
+	}
+	button {
+	display: block;
+	text-align: center; 
+	line-height: 2; 
+	font-size: 16px; 
+	font-weight: normal;
+	font-family: Arial, Helvetica, sans-serif;
+	background-color: #2e6dd8; /* Ligter blue than the background */
+	width: 390px;
+	text-decoration: underline;
+	transition-duration: 0.8s; /* Distracting good */
+	Color: black;
+	padding: 10px;
+	border-radius: 10px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	}
+	button:hover {background-color: #a51914;} /* Transition to a (lighhter) red for the contrast theme */ 
+	a {
+	color: black;
+	font-weight: bold;
+	}
+</style>
+
+<h1>Yasuo#5231</h1>
+
+<h2>About Yasuo</h2>
+<p>Yasuo is a custom-built Discord bot designed to streamline combat during Dungeons & Dragons (D&D) sessions. Particularly for new players. Yasuo makes orderd combat, action tracking, attacking, casting spells, and special actions simple by using simple slash commands. To do this it features automatic dice rolls, modifiers, damage calculations, condition tracking and more.<br><br>
+Even without extensive D&D knowledge, players benefit from the bot’s automation of common mechanics like advantage/disadvantage, hits/saves, crits and vulnerabilities. For Dungeon Masters, applying manual damage, healing and managing special conditions gives agency to include missing mechanics and players unwilling to use Yasuo.<br></p>
+<h2>Design Philosophy</h2>
+<p>One of the most distinctive elements of the bot is its lack of strict restraints. Rather than restricting the player with rigid validations and vague error messages, the bot is designed to trust the player. When a command is entered incorrectly or imprecisely, the bot tries to interpret it anyway. Instead of simply failing, it offers guidance or partial results, giving the player the freedom to act without fear of breaking the system.<br><br>
+This approach makes Yasuo more like a helpful co-pilot than a referee. It supports the flow of combat rather than interrupting it, and empowers users especially players unfamiliar with automation tools. Instead they are free to focus on decision-making rather than syntax or rule precision.<br></p>
+<h2>How Yasuo was Made</h2>
+<p>Yasuo was developed solo for personal use in D&D sessions. Yasuo uses Python 3.10 and Discord.py v2.4.0 and was created with lightweight, accessible tools such as notepad, and the python IDLE shell. Simple CSV files were used for the database and a clear goal to make combat faster and more engaging for new and experienced players alike.<br><br>
+Its RAD development methodology gave an enduser-centered design with often prototypes. From early versions, feedback was incorporated to refine commands, improve clarity, and add new features. It's currently in a stable usable state and will likey be continualy and gradualy improved over time.<br></p>
+
+<h2 style="width: 368px; border: 2px solid black;">Demo Yasuo's Commands</h2>
+<Button type="button" action="" style="border-radius: 0 0 10px 10px; margin-top: 0;"><a href="YasuoCommandsPage.html">Yasuo's Commands.</a></button>
+
+<div class="Pictures">
+	<div class="Leftpic">
+		<img src="Webpage/SteelTempest.png" alt="Steel Tempest.">
+	</div>
+	<div class="Rightpic">
+		<img src="Webpage/DawnAndDusk.png" alt="Dawn And Dusk.">
+	</div>
+</div>
+
+<Button type="button" action=""><a href="https://discord.com/oauth2/authorize?client_id=925690553989996554&permissions=8&integration_type=0&scope=bot">Invite Yasuo into your discord server!</a></button>
+
+<script>
+	const videos = document.querySelectorAll('.hover-video');
+
+	videos.forEach(video => {
+		video.addEventListener('mouseenter', () => {
+		video.loop = true;
+		video.play();
+		});
+		video.addEventListener('mouseleave', () => {
+			video.loop = false;
+			// Freeze on last frame
+		});
+	});
+</script>
+
+</body>
+
+</html>
