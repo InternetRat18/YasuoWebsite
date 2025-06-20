@@ -27,7 +27,7 @@ class DnDBot(commands.Bot):
         devTesting = False
         if devTesting:
             print("Running in debug mode. Syncing to test guild.")
-            devGuildID = 757478928653877309
+            devGuildID = 0 #GUILD ID REDACTED
             devGuild = discord.Object(id=devGuildID)
             synced = await self.tree.sync(guild=devGuild)
             print("Slash commands synced: " + str(len(synced)))
