@@ -83,7 +83,7 @@ async def cast(interaction: discord.Interaction, spell: str, target: str, caster
 
 async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_level: int = 0, advantage_override: str = "none"):
     #First we gain the relevent information from the caster & target
-    with open("Yasuo\Zed\characters.csv") as characterFile:
+    with open("Zed\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")
             fields = [s.lower() for s in fields]
@@ -115,7 +115,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                 targetConditions = fields[12]
                 
 
-    with open("Yasuo\Zed\spells.csv") as spellFile:
+    with open("Zed\spells.csv") as spellFile:
         for line in spellFile.readlines():
             fields = line.split(",")
             fields = [s.lower() for s in fields]
@@ -246,7 +246,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
     attackerConditionsToApply = ""
     targetConditionsToApply = ""
     #First we gain the relevent information from the attacker & target
-    with open("Yasuo\\Zed\\characters.csv") as characterFile:
+    with open("Zed\\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")
             fields = [s.lower() for s in fields]
@@ -276,7 +276,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 targetConditions = fields[12]
                 
     
-    with open("Yasuo\\Zed\\attacks.csv") as attackFile:
+    with open("Zed\\attacks.csv") as attackFile:
         for line in attackFile.readlines():
             fields = line.split(",")
             fields = [s.lower() for s in fields]
@@ -475,7 +475,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
 )
 async def action(interaction: discord.Interaction, character: str, action: str, target: str = ""):
     #first get characters (and targets) full name (for printing)
-    with open("Yasuo\\Zed\\characters.csv") as characterFile:
+    with open("Zed\\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")  #Break line into list of values
             if fields[0].lower().startswith(character.lower()):
@@ -513,7 +513,7 @@ async def action(interaction: discord.Interaction, character: str, action: str, 
 )
 async def search(interaction: discord.Interaction, file: str):
     if file != "": #If the file paramater is entered, open it and print the 1st value in each line/row
-        path = "Yasuo\\Zed\\" + file.strip().title() + ".csv"
+        path = "Zed\\" + file.strip().title() + ".csv"
         with open(path) as csvFile:
             outputMessage = "All " + file + " saved are:"
             for line_index, line in enumerate(csvFile.readlines()[1:], start=1):
@@ -535,7 +535,7 @@ async def create_encounter(interaction: discord.Interaction, characters: str, ch
         character_owners = [s.lower() for s in character_owners]
         character_owners = [s.strip() for s in character_owners]
     #Sanatise the user inputs
-    with open("Yasuo\\Zed\\characters.csv") as characterFile:
+    with open("Zed\\characters.csv") as characterFile:
         for index, character in enumerate(characterList):
             encounter_state["actionsLeft"].append([1, 1, 1])
             for line in characterFile.readlines():
@@ -566,7 +566,7 @@ async def encounter(interaction, command: str, info1: str = "", info2: str = "")
                          + "\n:notepad_spiral: Check off your actions below as you go to keep track!")
         global focusMessage
         #Open the character to see if we can find it, if we can check if player needs death saves.
-        with open("Yasuo\\Zed\\characters.csv") as characterFile:
+        with open("Zed\\characters.csv") as characterFile:
             for line in characterFile.readlines():
                 fields = line.split(",")
                 fields = [s.lower() for s in fields]
@@ -732,7 +732,7 @@ async def remove(interaction: discord.Interaction, target: str, condition: str =
     await interaction.response.send_message(outputMessage)
     
 def remove_logic(target: str, condition: str = ""):
-    with open("Yasuo\\Zed\\characters.csv") as characterFile:
+    with open("Zed\\characters.csv") as characterFile:
         updatedCharFileLines = []
         for line in characterFile.readlines():
             fields = line.split(",")
@@ -760,7 +760,7 @@ def remove_logic(target: str, condition: str = ""):
                     fields[12] = " ".join(conditionList)
                     line = ",".join(fields)
             updatedCharFileLines.append(line)
-    with open("Yasuo\\Zed\\characters.csv", "w") as f:
+    with open("Zed\\characters.csv", "w") as f:
         for line in updatedCharFileLines:
             f.write(line.strip() + "\n")
             #This will truncate the file (remove its contents) and write the updated lines in.
@@ -770,17 +770,47 @@ def remove_logic(target: str, condition: str = ""):
 async def reset(interaction: discord.Interaction):
     try:
         # Read from backup file
-        with open("Yasuo\\Zed\\charactersBK.csv", "r") as backup_file:
+        with open("Zed\\charactersBK.csv", "r") as backup_file:
             backup_data = backup_file.read()
 
         # Overwrite the original file with the backup data
-        with open("Yasuo\\Zed\\characters.csv", "w") as original_file:
+        with open("Zed\\characters.csv", "w") as original_file:
             original_file.write(backup_data)
 
         await interaction.response.send_message("✅ Character database has been reset to the backup.")
     except Exception as e:
         await interaction.response.send_message("❌ Failed to reset the database: " + e)
 
+# Slash command: /Roll_ability
+@client.tree.command(name="roll_ability", description="This command will reset the character database using the backup.")
+@app_commands.describe(
+    roller="Character that is making the ability check.",
+    ability="The ability you want to check, weather it be a skill or stat."
+)
+@app_commands.choices(
+    ability=[
+        app_commands.Choice(name=cond, value=cond) for cond in ["STR", "DEX", "CON", "INT", "WIS", "CHA", "Athletics", "Acrobatics", "Sleight of Hand", "Stealth", "Arcana", "History", "Investigation", "Nature", "Religion", "Animal Handling", "Insight", "Medicine", "Perception", "Survival", "Deception", "Intimidation", "Performance", "Persuasion"][:25]  # must be ≤25
+        ]
+)
+async def reset(interaction: discord.Interaction, roller: str, ability: str):
+    if ability in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
+        #Regular stat check
+        await interaction.response.send_message("Your " + ability + " check rolled a: " + str(ability_check(roller, ability, "None")) + ".")
+        return()
+    else:
+        #Ability check
+        releventStat = "Unknown"
+        if ability == "Athletics":
+            releventStat = "STR"
+        elif ability in ["Acrobatics", "Sleight of Hand", "Stealth"]:
+            releventStat = "DEX"
+        elif ability in ["Arcana", "History", "Investigation", "Nature", "Religion"]:
+            releventStat = "INT"
+        elif ability in ["Animal Handling", "Insight", "Medicine", "Perception", "Survival"]:
+            releventStat = "WIS"
+        elif ability in ["Deception", "Intimidation", "Performance", "Persuasion"]:
+            releventStat = "CHA"
+        await interaction.response.send_message(":game_die: " + roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability)) + ".")
 #function to Roll X sided dice, Y times
 def roll_dice(dice_count: int, dice_sides: int, modifier: int = 0) -> int:
     Total = modifier
@@ -792,7 +822,7 @@ def roll_dice(dice_count: int, dice_sides: int, modifier: int = 0) -> int:
 #function to Roll ability checks/saving throws
 def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: str = "None", passive: bool = False):
     #first get relevent information in the roller
-    with open("Yasuo\\Zed\\characters.csv") as characterFile:
+    with open("Zed\\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")  #Break line into list of values
             if fields[0].lower().startswith(roller.lower()):
@@ -888,7 +918,7 @@ def apply_effects(attacker: str, target: str, damage: int, Conditions: str, Deat
     casterConditionsToApply = conditionsToApply[1]
     updatedCharFileLines = []
     targetZeroHp = False
-    with open("Yasuo\\Zed\\characters.csv") as characterFile:
+    with open("Zed\\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")  #Break line into list of values
             if fields[0].strip().lower() == target.strip().lower():
@@ -935,7 +965,7 @@ def apply_effects(attacker: str, target: str, damage: int, Conditions: str, Deat
             #Now we add the adjusted line into a list
             updatedCharFileLines.append(line.strip())
             #with this list of strings (one string being one line of the csv) we can write it back into the file
-    with open("Yasuo\\Zed\\characters.csv", "w") as f:
+    with open("Zed\\characters.csv", "w") as f:
         for line in updatedCharFileLines:
             f.write(line + "\n")
             #This will truncate the file (remove its contents) and write the updated lines in.
@@ -955,4 +985,4 @@ Abbility checks at will
     """
 
 # Start the bot
-client.run("MY_TOKEN_HERE")
+client.run("MY_TOKEN")
