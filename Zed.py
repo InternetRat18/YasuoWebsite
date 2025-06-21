@@ -27,7 +27,7 @@ class DnDBot(commands.Bot):
         devTesting = False
         if devTesting:
             print("Running in debug mode. Syncing to test guild.")
-            devGuildID = 0 #GUILD ID REDACTED
+            devGuildID = 0 #DEV_GUILD_ID_REDACTED
             devGuild = discord.Object(id=devGuildID)
             synced = await self.tree.sync(guild=devGuild)
             print("Slash commands synced: " + str(len(synced)))
@@ -785,17 +785,22 @@ async def reset(interaction: discord.Interaction):
 @client.tree.command(name="roll_ability", description="This command will reset the character database using the backup.")
 @app_commands.describe(
     roller="Character that is making the ability check.",
-    ability="The ability you want to check, weather it be a skill or stat."
+    ability="The ability you want to check, weather it be a skill or stat.",
+    advantage_override="Give (dis)advantage?"
 )
 @app_commands.choices(
+    advantage_override=[
+        app_commands.Choice(name="Dis-advantage", value="disadvantage"),
+        app_commands.Choice(name="advantage", value="advantage")
+    ],
     ability=[
         app_commands.Choice(name=cond, value=cond) for cond in ["STR", "DEX", "CON", "INT", "WIS", "CHA", "Athletics", "Acrobatics", "Sleight of Hand", "Stealth", "Arcana", "History", "Investigation", "Nature", "Religion", "Animal Handling", "Insight", "Medicine", "Perception", "Survival", "Deception", "Intimidation", "Performance", "Persuasion"][:25]  # must be ≤25
-        ]
+    ]
 )
-async def reset(interaction: discord.Interaction, roller: str, ability: str):
+async def roll_ability(interaction: discord.Interaction, roller: str, ability: str, advantage_override: str = "None"):
     if ability in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
         #Regular stat check
-        await interaction.response.send_message("Your " + ability + " check rolled a: " + str(ability_check(roller, ability, "None")) + ".")
+        await interaction.response.send_message(":game_die: " + roller.title() + ", your  " + ability + " check rolled a: " + str(ability_check(roller, ability, "None", advantage_override)) + ".")
         return()
     else:
         #Ability check
@@ -810,7 +815,7 @@ async def reset(interaction: discord.Interaction, roller: str, ability: str):
             releventStat = "WIS"
         elif ability in ["Deception", "Intimidation", "Performance", "Persuasion"]:
             releventStat = "CHA"
-        await interaction.response.send_message(":game_die: " + roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability)) + ".")
+        await interaction.response.send_message(":game_die: " + roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability, advantage_override)) + ".")
 #function to Roll X sided dice, Y times
 def roll_dice(dice_count: int, dice_sides: int, modifier: int = 0) -> int:
     Total = modifier
@@ -834,9 +839,18 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
 
     statIndex = ["STR","DEX","CON","INT","WIS","CHA"].index(abilityStat.upper())
     modifier = int(rollerStatMods[statIndex])
-    if abilityCheck in rollerSavingThrows or abilityCheck in rollerProficiencies:
-        modifier += rollerProfBonus
-        #If proficient also add the prof bonus
+    print("Looking for:>" + abilityCheck + "<OR>" + abilityStat)
+    for ability in rollerProficiencies:
+        print("Checking:>" + ability)
+        if ability == abilityCheck:
+            #If proficient also add the prof bonus
+            print("Found:>ability")
+            modifier += rollerProfBonus
+        if ability == abilityCheck+"X2":
+            #If expert add prof bonus twice
+            modifier += rollerProfBonus + rollerProfBonus
+            print("Found:>abilityX2")
+    print(str(modifier))
     abilityRoll = roll_dice(1, 20, modifier)
     
     Advantage = False
