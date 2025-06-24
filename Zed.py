@@ -27,7 +27,7 @@ class DnDBot(commands.Bot):
         devTesting = False
         if devTesting:
             print("Running in debug mode. Syncing to test guild.")
-            devGuildID = 0 #DEV_GUILD_ID_REDACTED
+            devGuildID = 0 #GUILD_ID_REDACTED
             devGuild = discord.Object(id=devGuildID)
             synced = await self.tree.sync(guild=devGuild)
             print("Slash commands synced: " + str(len(synced)))
@@ -765,6 +765,46 @@ def remove_logic(target: str, condition: str = ""):
             f.write(line.strip() + "\n")
             #This will truncate the file (remove its contents) and write the updated lines in.
 
+# Slash command: /Create Character (&Monster)
+@client.tree.command(name="create_character", description="To create a character for players (&Monsters for DM's). Very sensitive, please follow instructions") 
+@app_commands.describe(#These discriptions are limited to 100characters and 9 paramaters
+    name="The name of character (or monster)",
+    character_class="The name of the class your character is (DM's: Monsters add 'M-' beforehand followed by the type of creature)",
+    character_level="The level of your character (DM's: Use this for the CR of your monster, in decimal value)",
+    stats="The numerical stats of your character in this format: 'STR/DEX/CON/INT/WIS/CHA'",
+    max_hp="The maximum hit points your character can have",
+    armor_class="The armor class of your character (with bonuses)",
+    proficiencies="A list of proficiencies, seperated by '/'. Name of weapon/skill. 'SM' = simple melee etc",
+    saving_throws="The list of saving throws you are proficient in, seperated by '/'",
+    vun_res_imm="A list of Vun/Res/Imm seperated by '/' and individual types seperated by space"
+)
+async def create_character(interaction: discord.Interaction, name: str, character_class: str, character_level: int, stats: str, max_hp: int, armor_class: int, proficiencies: str = "", saving_throws: str = "", vun_res_imm: str = ""):
+    #First sanatise the user inputs
+    name = name.strip()
+    character_class = character_class.strip()
+    stats = stats.strip()
+    proficiencies = proficiencies.strip()
+    saving_throws = saving_throws.strip()
+    vun_res_imm = vun_res_imm.strip()
+    #Then derive Prof bonus from character level
+    profBonus = 2
+    if character_level >= 17: profBonus = 6
+    elif character_level >= 13: profBonus = 5
+    elif character_level >= 9: profBonus = 4
+    elif character_level >= 5: profBonus = 3
+    #Now generate stat modifiers based on stats
+    statMods = ""
+    for stat in stats.split("/"): #Rounding down
+        statMods += str(int((int(stat)-10)/2)) + "/"
+    statMods = statMods[:-1] #move the extra '/'
+    #We now should have all the info to write to the (backup) file. Next, santatise user inputs
+    # Then format the Row and append it to the Bk file, then respond to the user
+    newRow = [name, character_class + " " + str(character_level), stats, statMods, str(max_hp) + "/0/" + str(max_hp), str(armor_class), "30", str(profBonus), proficiencies, saving_throws, "0/0", vun_res_imm, "None"]
+    with open("Zed\\charactersBK.csv", "a") as characterFileBK:
+        characterFileBK.write(",".join(newRow) + "\n")
+    await interaction.response.send_message(":pencil: " + name + " has been added the database, a reset is needed for it to show properly.")
+    
+
 # Slash command: /Reset
 @client.tree.command(name="reset", description="This command will reset the character database using the backup.")
 async def reset(interaction: discord.Interaction):
@@ -839,18 +879,13 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
 
     statIndex = ["STR","DEX","CON","INT","WIS","CHA"].index(abilityStat.upper())
     modifier = int(rollerStatMods[statIndex])
-    print("Looking for:>" + abilityCheck + "<OR>" + abilityStat)
     for ability in rollerProficiencies:
-        print("Checking:>" + ability)
         if ability == abilityCheck:
             #If proficient also add the prof bonus
-            print("Found:>ability")
             modifier += rollerProfBonus
         if ability == abilityCheck+"X2":
             #If expert add prof bonus twice
             modifier += rollerProfBonus + rollerProfBonus
-            print("Found:>abilityX2")
-    print(str(modifier))
     abilityRoll = roll_dice(1, 20, modifier)
     
     Advantage = False
@@ -911,7 +946,7 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
     diceCount = int(damage_dice.split("d")[0])
     diceSides = int(damage_dice.split("d")[1])
     damage = roll_dice(diceCount, diceSides, damageMod)
-    if rollToHit-bonusToHit == 20:
+    if rollToHit-bonusToHit == 20 and "crit" not in targetImmunities.lower():
         #Natural 20 e.g. critical hit
         damage += roll_dice(diceCount, diceSides)
         crit = True
@@ -992,10 +1027,11 @@ Graphics of some kind to make it more user friendly and exciting to use, Somewha
 DONE ~~Manual damage/healing & conditions for people who dont use the bot (like)~~
 DONE ~~Hiding,Helping,Dodgeing~~
 DONE ~~Allow a list of targets to be entered~~
-REJECTED **Give feedback on hp values on attack** Reason: Most DM's wont want to reveal their monsters HP bar to the players. instead, if the 'character' is not marked with M (for monster) I will give their remaining hp on turn start.
+REJECTED **Give feedback on hp values on attack** Reason: Most DM's wont want to reveal their monsters HP bar to the players. instead, if the 'character' is not marked with M- (for monster) I will give their remaining hp on turn start.
 DONE ~~Add the moddifier to the dmg dice text~~
 Done ~~Target yourself~~
-Abbility checks at will
+Done ~~Abbility checks at will~~
+Done ~~Create a character~~
     """
 
 # Start the bot
