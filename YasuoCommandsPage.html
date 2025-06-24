@@ -21,17 +21,25 @@
 	justify-content: center;
 	margin-left: auto; 
 	margin-right: auto;
-	width: 300px;
-	height: 300px;
-	background-color: black; 
+	max-width: 400px;
+	max-height: 400px;
+	background-color: #92817A;
 	}
+	.Pictures {
+	display: flex;
+	justify-content: center;
+	margin-left: auto; 
+	margin-right: auto;
+	}
+	.Leftpic {background-color: black; border-radius: 25px 0px 0px 25px; padding: 15px; border-top: 5px solid; border-left: 5px solid; border-bottom: 5px solid;}
+	.Rightpic {background-color: black; border-radius: 0px 25px 25px 0px; padding: 15px; border-top: 5px solid; border-right: 5px solid; border-bottom: 5px solid;}
 	video {
 	display: block;
 	vertical-align: bottom;
 	justify-content: center;
 	margin-left: auto; 
 	margin-right: auto;
-	width: 520px;
+	width: 500px;
 	height: 293px;
 	background-color: #323339; /* discord background colour */
 	}
@@ -41,33 +49,24 @@
 	justify-content: center;
 	gap: 30px; /* space between blocks */
 	padding: 0px;
-	max-width: 1100px;
-	margin: 0 auto;
+	max-width: 1200px;
+	margin: 20px auto;
 	}
 	.video-block {
-	width: 520px;
+	width: 400px;
 	text-align: center;
 	}
-	.Pictures {
-	display: flex;
-	justify-content: center;
-	margin-left: auto; 
-	margin-right: auto;
-	}
-	.Leftpic {background-color: black; border-radius: 25px 0px 0px 25px; padding: 15px}
-	.Rightpic {background-color: black; border-radius: 0px 25px 25px 0px; padding: 15px}
-
 	h1 {
 	text-align: center;
 	font-family: Arial, Helvetica, sans-serif;
 	padding: 20px; 
-	background-color: #a71e21; 
+	background-color: #3772FF;
 	color: black; 
-	max-width: 750px; 
+	max-width: 900px; 
 	margin-left: auto; 
 	margin-right: auto;
 	border-radius: 10px;
-	border: 2px;
+	border: 5px solid #0D1C5D;
 	}
 	h2 {
 	text-align: justify;
@@ -75,26 +74,27 @@
 	line-height: 1; 
 	font-size: 24px;
 	font-family: Arial, Helvetica, sans-serif;
-	text-shadow: 1px 1px 1px #8B7500;
+	text-shadow: 1px 1px 2px rgba(255, 204, 150, 0.3);
 	color: black; 	
-	background-color: #D37A11; /* Nice Orange, inbetween of Yellow and red */
-	max-width: 750px;
+	background-color: #119DA4;
+	width: 480px;
 	border-radius: 10px 10px 0px 0px;
+	border-bottom: 2px solid black;
 	padding: 10px;
 	margin: 0px;
 	}
 	p {
 	text-align: justify;
 	text-align-last: center;
-	line-height: 1.5; 
-	font-size: 18px;
+	line-height: 1.6; 
+	font-size: 20px;
 	font-family: Arial, Helvetica, sans-serif;
-	text-shadow: 1px 1px 1px #8B7500;
+	text-shadow: 1px 1px 2px rgba(204, 85, 0, 0.5);
 	color: black; 	
-	background-color: #FFD700; /* Nice yellow, inbetween of blue and red */
-	width: 500px;
+	background-color: #FFC857;
+	max-width: 460px;
 	border-radius: 0px 0px 10px 10px;
-	padding: 10px;
+	padding: 20px;
 	margin-left: auto;
 	margin-right: auto;
 	margin-top: 0;
@@ -122,11 +122,48 @@
 	button:hover {background-color: #a51914;} /* Transition to a (lighhter) red for the contrast theme */ 
 	a {
 	color: black;
+	font-size: 20px;
+	font-family: Arial, Helvetica, sans-serif;
 	font-weight: bold;
 	}
+	.navBar {
+	justify-content: center;
+	max-width: 910px;
+	background-color: #976391;
+	padding: 15px;
+	border-radius: 50px;
+	margin-left: auto;
+	margin-right: auto;
+	}
+	.navContent {
+	display: flex;
+	gap: 40px;
+	align-items: center;
+	justify-content: center;
+	}
+	.navLink {
+	display: inline-block;
+	text-align: center;
+	width: 225px;
+	background-color: #de2a29; /* G:#00FF80 R:#891215 B:#0d1c5d Y:#8B7500 O:#D37A11 */
+	padding: 25px;
+	transition: transform 0.3s ease;
+	border-radius: 50px;
+	border: 5px solid #891215;
+	margin: 0;
+	}
+	.navLink:hover { transform: scale(1.05); }
 </style>
 
 <h1>Yasuo#5231</h1>
+
+<div class="navBar">
+<nav class="navContent">
+	<h1 class="navLink" style="font-size: 20px">Yasuo's Commands</h1>
+	<a href="YasuoWebpage.html" class="navLink">Yasuo Homepage</a>
+	<a href="YasuoSource-codePage.html" class="navLink">Yasuo's Source Code</a>
+</nav>
+</div>
 
 <div class="video-grid">
 <div class="videoBlock">
@@ -138,7 +175,7 @@
   Your browser does not support the video tag.
 </video>
 <p>
-Mainly used by the DM to set up a combat encounter. By specifying the characters (+monsters) involved, and optionally assigning their character owners (@handles). It initiates the encounter within the bot's framework, allowing for turn order, action, health and condition tracking to streamline combat.<br>
+Mainly used by the DM to set up a combat encounter. By specifying the characters (+monsters) involved, and optionally assigning their character owners. It initiates the encounter within the bot's framework, allowing for turn order, action, health and condition tracking to streamline combat.<br>
 </p>
 </div>
 
@@ -151,7 +188,7 @@ Mainly used by the DM to set up a combat encounter. By specifying the characters
   Your browser does not support the video tag.
 </video>
 <p>
-Often used by players unwilling to use the bot to manually apply various effects to characters, such as damage, healing, or conditions. This also gives the Dungeon Master (DM) direct control over character states within the bot's system, allowing for flexible adjustments during combat or other scenarios.<br>
+Often used by players unwilling or unable to use Yasuo, this manually apply various effects to characters, such as damage, healing, or conditions. This also gives the DM direct control over character states within the bot's system, allowing for flexible adjustments during combat or other scenarios.<br>
 </p>
 </div>
 
@@ -177,7 +214,7 @@ This command allows a player to cast a spell. The user specifies the spell name,
   Your browser does not support the video tag.
 </video>
 <p>
-/attack: This command facilitates a character's attack using a specified weapon. The user inputs the attacker, the weapon, and the target, and the bot calculates if the attack hits (considering modifiers) and the damage dealt, streamlining the attack resolution process for players.<br>
+This command facilitates a character's attack. The user inputs the attacker, the weapon, and the target. It then calculates if the attack hits and the damage dealt, streamlining the attack resolution process for players.<br>
 </p>
 </div>
 
@@ -229,12 +266,10 @@ Used to perform various combat actions other than attacks. As seen in the exampl
   Your browser does not support the video tag.
 </video>
 <p>
-The /remove command is used to manually remove a condition from a character, giving the DM control over ongoing effects. The /reset command provides a way to revert the character database to a previous backup state, which can be useful for correcting errors or resetting the combat state.<br>
+The /remove command is used to manually remove a condition from a character, giving control over ongoing effects. The /reset command provides a way to revert the character database to a previous backup state, effectively resetting the combat state.<br>
 </p>
 </div>
 </div>
-
-<Button type="button" action=""><a href="YasuoWebpage.html">Back to Homepage</a></button>
 
 <div class="Pictures">
 	<div class="Leftpic">
@@ -244,8 +279,6 @@ The /remove command is used to manually remove a condition from a character, giv
 		<img src="Webpage/DawnAndDusk.png" alt="Dawn And Dusk.">
 	</div>
 </div>
-
-<Button type="button" action=""><a href="https://discord.com/api/oauth2/authorize?client_id=925690553989996554&permissions=8&scope=bot">Invite Yauso into your discord server!</a></button>
 
 <script>
 	const videos = document.querySelectorAll('.hover-video');
