@@ -10,9 +10,16 @@
 <body>
 
 <style>
+	/* Color pallete: 
+	1: #891215 - OU Crimson
+	2: #0D1C5D - Penn Blue
+	3: #FFC857 - Sunglow
+	4: #119DA4 - Dark Cyan
+	5: #EF959D - Salmon Pink
+	6: #976391 - Pomp and Power */
 	body {
 	background-image: linear-gradient(to right, #0d1c5d, #000000, #891215);
-	/* #0d1c5d Colour signifies the Yasuo image (blue) & #891215 signifies the Zed image (red)*/
+	/* #0d1c5d Colour signifies the Yasuo image (blue) & #891215 signifies the Zed image (red) */
 	margin: 0px;
 	}
 	img {
@@ -21,9 +28,9 @@
 	justify-content: center;
 	margin-left: auto; 
 	margin-right: auto;
-	width: 300px;
-	height: 300px;
-	background-color: black; 
+	max-width: 400px;
+	max-height: 400px;
+	background-color: #92817A;
 	}
 	.Pictures {
 	display: flex;
@@ -31,19 +38,19 @@
 	margin-left: auto; 
 	margin-right: auto;
 	}
-	.Leftpic {background-color: black; border-radius: 25px 0px 0px 25px; padding: 15px}
-	.Rightpic {background-color: black; border-radius: 0px 25px 25px 0px; padding: 15px}
+	.Leftpic {background-color: black; border-radius: 25px 0px 0px 25px; padding: 15px; border-top: 5px solid; border-left: 5px solid; border-bottom: 5px solid;}
+	.Rightpic {background-color: black; border-radius: 0px 25px 25px 0px; padding: 15px; border-top: 5px solid; border-right: 5px solid; border-bottom: 5px solid;}
 	h1 {
 	text-align: center;
 	font-family: Arial, Helvetica, sans-serif;
 	padding: 20px; 
-	background-color: #a71e21; 
+	background-color: #3772FF;
 	color: black; 
-	max-width: 750px; 
+	max-width: 900px; 
 	margin-left: auto; 
 	margin-right: auto;
 	border-radius: 10px;
-	border: 2px;
+	border: 5px solid #0D1C5D;
 	}
 	h2 {
 	text-align: justify;
@@ -51,10 +58,10 @@
 	line-height: 1; 
 	font-size: 24px;
 	font-family: Arial, Helvetica, sans-serif;
-	text-shadow: 1px 1px 1px #8B7500;
+	text-shadow: 1px 1px 2px rgba(255, 204, 150, 0.3);
 	color: black; 	
-	background-color: #D37A11; /* Nice Orange, inbetween of Yellow and red */
-	max-width: 900px;
+	background-color: #119DA4;
+	max-width: 920px;
 	border-radius: 10px 10px 0px 0px;
 	border-bottom: 2px solid black;
 	padding: 10px;
@@ -65,47 +72,64 @@
 	p {
 	text-align: justify;
 	text-align-last: center;
-	line-height: 1.5; 
+	line-height: 1.6; 
 	font-size: 20px;
 	font-family: Arial, Helvetica, sans-serif;
-	text-shadow: 1px 1px 1px #8B7500;
+	text-shadow: 1px 1px 2px rgba(204, 85, 0, 0.5);
 	color: black; 	
-	background-color: #FFD700; /* Nice yellow, inbetween of blue and red */
+	background-color: #FFC857;
 	max-width: 900px;
 	border-radius: 0px 0px 10px 10px;
-	padding: 10px;
+	padding: 20px;
 	margin-left: auto;
 	margin-right: auto;
 	margin-top: 0;
 	margin-bottom: 0;
 	}
-	button {
-	display: block;
-	text-align: center; 
-	line-height: 2; 
-	font-size: 16px; 
-	font-weight: normal;
-	font-family: Arial, Helvetica, sans-serif;
-	background-color: #2e6dd8; /* Ligter blue than the background */
-	width: 390px;
-	text-decoration: underline;
-	transition-duration: 0.8s; /* Distracting good */
-	Color: black;
-	padding: 10px;
-	border-radius: 10px;
-	margin-left: auto;
-	margin-right: auto;
-	margin-top: 10px;
-	margin-bottom: 10px;
-	}
-	button:hover {background-color: #a51914;} /* Transition to a (lighhter) red for the contrast theme */ 
 	a {
 	color: black;
+	font-size: 20px;
+	font-family: Arial, Helvetica, sans-serif;
 	font-weight: bold;
 	}
+	.navBar {
+	justify-content: center;
+	max-width: 910px;
+	background-color: #976391;
+	padding: 15px;
+	border-radius: 50px;
+	margin-left: auto;
+	margin-right: auto;
+	}
+	.navContent {
+	display: flex;
+	gap: 40px;
+	align-items: center;
+	justify-content: center;
+	}
+	.navLink {
+	display: inline-block;
+	text-align: center;
+	width: 225px;
+	background-color: #de2a29; /* G:#00FF80 R:#891215 B:#0d1c5d Y:#8B7500 O:#D37A11 */
+	padding: 25px;
+	transition: transform 0.3s ease;
+	border-radius: 50px;
+	border: 5px solid #891215;
+	margin: 0;
+	}
+	.navLink:hover { transform: scale(1.05); }
 </style>
 
 <h1>Yasuo#5231</h1>
+
+<div class="navBar">
+<nav class="navContent">
+	<a href="YasuoCommandsPage.html" class="navLink">Yasuo's Commands</a>
+	<h1 class="navLink" style="font-size: 20px">Yasuo Homepage</h1>
+	<a href="YasuoSource-codePage.html" class="navLink">Yasuo's Source Code</a>
+</nav>
+</div>
 
 <h2>About Yasuo</h2>
 <p>Yasuo is a custom-built Discord bot designed to streamline combat during Dungeons & Dragons (D&D) sessions. Particularly for new players. Yasuo makes ordered combat, action tracking, attacking, casting spells, and special actions simple by using simple slash commands. To do this it features automatic dice rolls, modifiers, damage calculations, condition tracking and more.<br><br>
@@ -117,8 +141,11 @@ This approach makes Yasuo more like a helpful co-pilot than a referee. It suppor
 <p>Yasuo was developed solo for personal use in D&D sessions. Yasuo uses Python 3.10 and Discord.py v2.4.0 and was created with lightweight, accessible tools such as notepad, and the python IDLE shell. Simple CSV files were used for the database and a clear goal to make combat faster and more engaging for new and experienced players alike.<br><br>
 Using the RAD development methodology, the project maintained an end-user-centered design and produced frequent prototypes. From early versions, feedback was incorporated to refine commands, improve clarity, and add new features. It's currently in a stable usable state and will likey be continually and gradually improved over time.<br></p>
 
-<h2 style="width: 368px; border: 2px solid black;">Demo Yasuo's Commands</h2>
-<Button type="button" action="" style="border-radius: 0 0 10px 10px; margin-top: 0;"><a href="YasuoCommandsPage.html">Yasuo's Commands.</a></button>
+<div class="navBar" style="max-width: 485px; margin: 20px auto;">
+<nav class="navContent">
+<a class="navLink" style="width: 400px;" href="https://discord.com/oauth2/authorize?client_id=925690553989996554&permissions=8&integration_type=0&scope=bot">Invite Yasuo into your discord server!</a>
+</nav>
+</div>
 
 <div class="Pictures">
 	<div class="Leftpic">
@@ -128,23 +155,6 @@ Using the RAD development methodology, the project maintained an end-user-center
 		<img src="Webpage/DawnAndDusk.png" alt="Dawn And Dusk.">
 	</div>
 </div>
-
-<Button type="button" action=""><a href="https://discord.com/oauth2/authorize?client_id=925690553989996554&permissions=8&integration_type=0&scope=bot">Invite Yasuo into your discord server!</a></button>
-
-<script>
-	const videos = document.querySelectorAll('.hover-video');
-
-	videos.forEach(video => {
-		video.addEventListener('mouseenter', () => {
-		video.loop = true;
-		video.play();
-		});
-		video.addEventListener('mouseleave', () => {
-			video.loop = false;
-			// Freeze on last frame
-		});
-	});
-</script>
 
 </body>
 
