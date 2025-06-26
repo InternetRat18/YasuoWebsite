@@ -14,7 +14,7 @@ encounter_state = {
     "characterOwners": [],
     "currentIndex": 0,
     "actionsLeft": [] #[Action, BonusAction, Reaction] for each character
-} #Used for all the infomation to do with encounters. this can be called anywhere witout the use of 'global encounter_state' (unless the whole variable is getting redefined)
+} #Used for all the information related to encounters. This can be called anywhere without the use of 'global encounter_state' (unless the whole variable is getting redefined)
 focusMessage = None
 
 # Define the bot with slash command support
@@ -27,7 +27,7 @@ class DnDBot(commands.Bot):
         devTesting = False
         if devTesting:
             print("Running in debug mode. Syncing to test guild.")
-            devGuildID = 0 #GUILD_ID_REDACTED
+            devGuildID = 0 #DEV_ID_REDACTED
             devGuild = discord.Object(id=devGuildID)
             synced = await self.tree.sync(guild=devGuild)
             print("Slash commands synced: " + str(len(synced)))
@@ -73,7 +73,7 @@ async def cast(interaction: discord.Interaction, spell: str, target: str, caster
             singleTarget = singleTarget.strip()
             completeOutputMessage += await cast_logic(interaction, spell, singleTarget, caster, upcast_level, advantage_override)
             completeOutputMessage += "\n" + "\n"
-            #Call the logic for each, joining the messages with doubble newline characters
+            #Call the logic for each, joining the messages with double newline characters
         completeOutputMessage = completeOutputMessage.strip()
         await interaction.response.send_message(completeOutputMessage)
         #remove the extra newline character and send it as one
@@ -88,11 +88,11 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
             fields = line.split(",")
             fields = [s.lower() for s in fields]
             fields = [s.strip() for s in fields]
-            #Split the line into fields once here to save resources on always spliting it. Also 'sanatise' it with lower() and strip()
+            #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
             if fields[0].startswith(caster):
                 caster = fields[0]
                 #Select the line with caster info
-                casterSpellAbilityIndex = 3 #3 id defult for most classes 
+                casterSpellAbilityIndex = 3 #3 id default for most classes 
                 if fields[1].split(" ")[0] in ["cleric" , "druid", "monk", "ranger"]:
                     casterSpellAbilityIndex = 4 #4 is for WIS
                 elif fields[1].split(" ")[0] in ["Bard", "Paladin", "Sorcerer", "Warlock"]:
@@ -106,7 +106,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                 
             if fields[0].startswith(target):
                 target = fields[0]
-                #Select the line with target info
+                #Select the line with the target info
                 targetStatMods = fields[3]
                 targetAC = int(fields[5])
                 targetProfBonus = int(fields[7])
@@ -120,14 +120,14 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
             fields = line.split(",")
             fields = [s.lower() for s in fields]
             fields = [s.strip() for s in fields]
-            #Split the line into fields once here to save resources on always spliting it. Also 'sanatise' it with lower() and strip()\
+            #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()\
             if fields[0].startswith(spell):
                 spell = fields[0]
                 #Select the line with the spell info
                 
                 spellDamage = fields[3]
                 if int(fields[1]) == 0 and fields[6] != "":
-                    #if its a cantrip, and has 'upcast' damage add correct damage depending on player level
+                    #if its a cantrip, and has 'upcast' damage, add correct damage depending on player level
                     additionalDice = 0
                     for levRequirement in fields[6].split("/"):
                         if int(levRequirement) <= casterLevel:
@@ -168,7 +168,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                     damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus, 0, saveDC, targetSaveMod, spellDamageType, targetVunResImm, casterConditions+"/"+targetConditions, spellOnSave.title(), advantage_override)
                     if crit is True: spellDamage = str(int(spellDamage.split("d")[0])*2) + "d" + spellDamage.split("d")[1]
                 else:
-                    #If it doesnt apply damage
+                    #If it doesn't apply damage
                     damage = 0
                     crit = False
                     if saveDC <= 0:
@@ -188,6 +188,8 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                     for condition in spellConditions:
                         if condition.startswith("#"):
                             casterConditionsToApply += " " + condition[1:]
+                            if "concentration" in condition: #If its concentration being self-applied, give reference to the spell
+                                casterConditionsToApply += ":" + spell + ":" + target.replace(" ", "|")
                         elif condition in targetConditions:
                             conditionsAlreadyPresent += " " + condition.title()
                         else:
@@ -203,7 +205,9 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     if upcast_level > 0: outputMessage += "\n:magic_wand: Attempted  to upcast " + spell.title() + " to level " + str(upcast_level)
     if advantage_override != "none": outputMessage += "\n:warning:Manual (Dis)Advantage Override was given: " + advantage_override
     #Now we write the effects to the the char file updated (There is a characterBK.csv file to restore it to its original) and remove the action from the player.
-    if apply_effects(caster, target, damage, targetConditionsToApply+"/"+casterConditionsToApply): outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+    applyEffectsRetunrString = apply_effects(caster, target, damage, targetConditionsToApply+"/"+casterConditionsToApply)
+    if "TargetZeroHp" in applyEffectsRetunrString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+    if "ConcentrationBroken" in applyEffectsRetunrString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
     if spellActionUsage[1:] == "action": await encounter(interaction, "remove action", "action")
     elif spellActionUsage == "bonusaction": await encounter(interaction, "remove action", "bonus action") 
     elif spellActionUsage == "reaction": await encounter(interaction, "remove action", "reaction")
@@ -239,19 +243,19 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
     secondary_attack = secondary_attack.lower().strip()
     attacker = attacker.lower().strip()
     target = target.lower().strip()
-    #'Sanatise' the user inputs
+    #'Sanitise' the user inputs
     damageTotal = 0
     damageDiceTotal = ""
     seccondaryDamageDiceTotal = ""
     attackerConditionsToApply = ""
     targetConditionsToApply = ""
-    #First we gain the relevent information from the attacker & target
+    #First, we gain the relevant information from the attacker & target
     with open("Zed\\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")
             fields = [s.lower() for s in fields]
             fields = [s.strip() for s in fields]
-            #Split the line into fields once here to save resources on always spliting it. Also 'sanatise' it with lower() and strip()
+            #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
             if fields[0].startswith(attacker):
                 attacker = fields[0]
                 #Attacker line
@@ -281,16 +285,16 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
             fields = line.split(",")
             fields = [s.lower() for s in fields]
             fields = [s.strip() for s in fields]
-            #Split the line into fields once here to save resources on always spliting it. Also 'sanatise' it with lower() and strip()
+            #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
             if fields[0].startswith(attack) is True and "special" not in fields[3] and "secondaryattack" not in fields[3] and fields[1] != "":
                 attack = fields[0]
-                #If its the selected and valid attack, has damage. Attacks marked as special will be delt with seperately. Attacks marked with SecondaryAttack can only be used as an optional extra attack. This is the execution of the main attack/weapon. Also 
+                #If its the selected and valid attack, it has damage. Attacks marked as special will be dealt with separately. Attacks marked with SecondaryAttack can only be used as an optional extra attack. This is the execution of the main attack/weapon. Also 
                 attackProperties = fields[3]
                 bonusToHit = int(weapon_mod)
                 bonusToDmg = 0
                 damageType = fields[2]
 
-                #Calculate te bonus to the hit roll
+                #Calculate the bonus to the hit roll
                 strMod = attackerStatMods.split("/")[0]
                 dexMod = attackerStatMods.split("/")[1]
                 strMod, dexMod = int(strMod), int(dexMod)
@@ -303,14 +307,14 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                     bonusToHit += strMod
                 bonusToDmg = bonusToHit
                 if fields[3].split(" ")[0] in attackerProficiencies.split("/") or fields[0] in attackerProficiencies.split("/"):
-                    #If attacker is proficient in the attack/weapon
+                    #If the attacker is proficient in the attack/weapon
                     bonusToHit += attackerProfBonus
                 
                 damage, damageType, rollToHit, saved, crit = calc_damage(fields[1], bonusToHit, bonusToDmg, targetAC, 0, damageType, targetVunResImm, attackerConditions+"/"+targetConditions, "Miss", advantage_override)
                 damageTotal += damage
                 if crit is False: damageDiceTotal += fields[1] + damageType.title() + "+" + str(bonusToDmg) + "+"
                 elif crit is True: damageDiceTotal += str(int(fields[1].split("d")[0])*2) + "d" + fields[1].split("d")[1] + damageType.title() + "+" + str(bonusToDmg) + "+"
-                #Count the total damage excusively for writing bback the the (character) file
+                #Count the total damage exclusively for writing back the (character) file
                 
             if fields[0].startswith(secondary_attack) is True and "special" not in fields[3]:
                 secondary_attack = fields[0]
@@ -346,13 +350,13 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 #If the seccondary attack is a special attack, these require unique logic and thus is easier to hard code them, especily due to them being so few 'special' attacks.
                 secondary_attack = fields[0]
                 if secondary_attack == "sneak attack":
-                    #If the attack is marked as 'sneak attack' we will make sure the attacker is able to use it. Because this attack relies to heavily on the main attack attrabutes we will do the logic for this after this whole file has been read.
+                    #If the attack is marked as 'sneak attack', we will make sure the attacker is able to use it. Because this attack relies to heavily on the main attack attributes, we will do the logic for this after this whole file has been read.
                     if attackerClass != "rogue":
                         await interaction.response.send_message(":exclamation: Only rogues can use sneak attack.")
                         return()
 
             if fields[0].startswith(attack) is True and "special" in fields[3] and "secondaryattack" not in fields[3]:
-                #Do the logic for primary special attacks entered here. Each one is unique and will be hard coded due to this and how few of them there are. Special secondary attacks will be dont outside of this open() statement.
+                #Do the logic for primary special attacks entered here. Each one is unique and will be hard coded due to this and how few of them there are. Special secondary attacks will be done outside of this open() statement.
                 attack = fields[0]
                 if attack == "grapple":
                     #Grapple special attack
@@ -379,7 +383,6 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                         saved = False
                         attackerConditionsToApply += " Grappling:" + target.title()
                         targetConditionsToApply += " Grappled"
-                        
                     else:
                         saved = True
                     damage = 0
@@ -402,7 +405,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                     else:
                         saved = True
                         
-    #Do the logic for secondary special attacks now as they rely on the main attack attrabutes.
+    #Do the logic for secondary special attacks now, as they rely on the main attack attributes.
     if secondary_attack == "sneak attack":
         secondary_attack = "none"
         if saved == False:
@@ -417,7 +420,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
             damage += sneakAttackDamage
             damageTotal += sneakAttackDamage
                 
-    #Quick check to see if duel weilding was used it was valid
+    #Quick check to see if duel wielding was used it was valid
     if secondary_attack != "none" and attack != "grapple" and attack != "net":
         #If secondary attack was entered (some special attacks dont want this to trigger, thus secondary_attack may = none, even if one was entered at this point). If grappled was used, the secondary attack wont get advantage as it should due to effects being applied at the end of this code, so dont let it happen.
         attackProperties = attackProperties.split(" ")
@@ -439,12 +442,14 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
         if secondaryAttackCrit is True: outputMessage += "\n:tada: CRITICAL HIT! Your off-hand attack damage dice was rolled twice"
         if targetConditionsToApply != "": outputMessage +="\n:face_with_spiral_eyes: The following conditions were applied:" + targetConditionsToApply
         if advantage_override != "none": outputMessage += "\n:warning:Manual (Dis)Advantage Override was given: " + advantage_override
-        if apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply): outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+        applyEffectsRetunrString = apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply)
+        if "TargetZeroHp" in applyEffectsRetunrString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+        if "ConcentrationBroken" in applyEffectsRetunrString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
         await interaction.response.send_message(outputMessage)
         await encounter(interaction, "remove action", "action")
         await encounter(interaction, "remove action", "bonus action") 
     else:
-        #No secondary attack was given and the attack wasnt a grapple
+        #No secondary attack was given, and the attack wasn't a grapple
         outputMessage = "*" + attacker.title() + "* has used *" + attack.title() + "* targeting *" + target.title() + "*"
         if attack != "grapple": outputMessage += "\n:dart: Did the attack hit?: " + ("✅" if not saved else "❌") + " (" + str(rollToHit) + "Hit vs " + str(targetAC) + "Ac)"
         elif attack == "grapple": outputMessage += "\n:dart: Did the Grapple succeed?: " + ("✅" if not saved else "❌") + " (" + str(attackerAthleticsCheck) + "Athletics vs " + str(targetContestRoll) + grappleSkill.title() + ")"
@@ -456,10 +461,12 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
             if attack == "grapple": outputMessage += "\n:warning: Secondary attacks used while attemping a grapple may not gain advantage. Your secondary attack has been canceled."
             if attack == "net": outputMessage += "\n:warning: After using the net attack, you may not use any other attacks this turn."
             damageTotal -= secondaryAttackDamage
-        if apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply): outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+        applyEffectsRetunrString = apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply)
+        if "TargetZeroHp" in applyEffectsRetunrString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+        if "ConcentrationBroken" in applyEffectsRetunrString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
         await interaction.response.send_message(outputMessage)
         await encounter(interaction, "remove action", "action")
-    #The effects were written to the the char file updated (There is a characterBK.csv file to restore it to its original) and the action removed from the player.
+    #The effects were written to the the char file updated (There is a characterBK.csv file to restore it to its original) and the action was removed from the player.
     
 # Slash command: /Action
 @client.tree.command(name="action", description="For actions other than attacks during combat.")
@@ -490,7 +497,7 @@ async def action(interaction: discord.Interaction, character: str, action: str, 
         await encounter(interaction, "remove action", "action")
         await interaction.response.send_message(target.title() + " is being helped this round.")
     elif action == "Hide":
-        #Make a stealth check and contest it with a passive perceptoion on the target (if any)
+        #Make a stealth check and contest it with a passive perception on the target (if any)
         stealthCheck = ability_check(character, "DEX", "Stealth")
         saved = False
         if target != "":
@@ -512,7 +519,7 @@ async def action(interaction: discord.Interaction, character: str, action: str, 
     file="The name of the data table"
 )
 async def search(interaction: discord.Interaction, file: str):
-    if file != "": #If the file paramater is entered, open it and print the 1st value in each line/row
+    if file != "": #If the file parameter is entered, open it and print the 1st value in each line/row
         path = "Zed\\" + file.strip().title() + ".csv"
         with open(path) as csvFile:
             outputMessage = "All " + file + " saved are:"
@@ -547,11 +554,11 @@ async def create_encounter(interaction: discord.Interaction, characters: str, ch
     await encounter(interaction, "start", characterList, character_owners)
 
 async def encounter(interaction, command: str, info1: str = "", info2: str = ""):
-    #This function will be the heart of the encounter. It will have all the variables without messing with global varaiables. All things related will call this.
+    #This function will be the heart of the encounter. It will have all the variables without messing with global variables. All things related will call this.
     characterOrder = []
     characterOwners = []
     if command == "start":
-        #Initalise the varaibles
+        #Initalise the variables
         encounter_state["characterOrder"] = info1
         encounter_state["characterOwners"] = info2
         encounter_state["currentIndex"] = 0
@@ -581,9 +588,9 @@ async def encounter(interaction, command: str, info1: str = "", info2: str = "")
                             #Apply the success
                             outputMessage += "\n:coffin: Your character is at 0hp. Your death save was a Success (" + str(deathSaveRoll) + ") :sparkles:"
                             apply_effects(encounter_state["characterOrder"][encounter_state["currentIndex"]].lower(), "None", 0, "/", DeathSave = "success")
-                            #Check if player is revived
+                            #Check if the player is revived
                             if int(fields[10].split("/")[0]) >= 2:
-                                #If the success' was 2 and is now 3, revive the player by healing 1hp and give the player actions
+                                #If the success was 2 and is now 3, revive the player by healing 1hp and give the player actions
                                 apply_effects(encounter_state["characterOrder"][encounter_state["currentIndex"]], "None", -1, "/")
                                 outputMessage += "\n:star2: Your character has been revived to 1hp."
                                 focusMessage = await interaction.followup.send(outputMessage, view=ActionView())
@@ -617,18 +624,24 @@ async def encounter(interaction, command: str, info1: str = "", info2: str = "")
                         if "." in condition:
                             conditionParts = condition.split(".")
                             #If the condition is related to actions, adjust accordingly.
+                            actCount, bActCount, rActCount = 1, 1, 1
                             if conditionParts[0] == "+Action":
-                                encounter_state["actionsLeft"][encounter_state["currentIndex"]] = [2, 1, 1]
+                                actCount += 1
                             elif conditionParts[0] == "-Action":
-                                encounter_state["actionsLeft"][encounter_state["currentIndex"]] = [0, 1, 1]
+                                actCount -= 1
+                            elif conditionParts[0] == "Noreactions":
+                                rActCount = 0
+                            elif conditionParts[0] == "Nobonusactions":
+                                bActCount = 0
+                            encounter_state["actionsLeft"][encounter_state["currentIndex"]] = [actCount, bActCount, rActCount]
                             #Tick down the turns remaining
                             turnsRemaining = int(conditionParts[len(conditionParts)-1])-1
                             if turnsRemaining <= 0:
-                                #Remove the condition
+                                #Remove the condition if its expired
                                 remove_logic(encounter_state["characterOrder"][encounter_state["currentIndex"]].title(), condition.title())
                             elif turnsRemaining > 0:
                                 updatedCondition = conditionParts[0] + "." + str(turnsRemaining)
-                                #Remove the condition and add the updatedCondition
+                                #If its not expired, remove the (old) condition and add the updatedCondition (with its timer ticked down)
                                 remove_logic(encounter_state["characterOrder"][encounter_state["currentIndex"]].title(), condition.title())
                                 apply_effects("None", encounter_state["characterOrder"][encounter_state["currentIndex"]].title(), 0, " " + updatedCondition.title() + "/")
                     if len(fields[12].split(" ")) > 1: outputMessage += "\n:face_with_spiral_eyes: Your active conditions: " + str(fields[12].split(" ")[1:])
@@ -639,7 +652,7 @@ async def encounter(interaction, command: str, info1: str = "", info2: str = "")
         if encounter_state["currentIndex"] >= len(encounter_state["characterOrder"]):
             encounter_state["currentIndex"] = 0
             await interaction.followup.send(":recycle: Going back to the start of the round.")
-            #Reset the round of combat. This is an optinal message that I will leave in for now. Adds clarity to the users.
+            #Reset the round of combat. This is an optional message that I will leave in for now. Adds clarity to the users.
         await encounter(interaction, "start turn")
     elif command == "remove action":
         try: #Allows /cast and /attack to be used outside of an encounter
@@ -662,7 +675,7 @@ class ActionView(View):
             if index != 3:
                 if encounter_state["actionsLeft"][encounter_state["currentIndex"]][index] == 0:
                     item.disabled = True
-        #Only allow the action buttons (action, bonus action and reaction buttons) to be clickable if they have the relevent actions left.
+        #Only allow the action buttons (action, bonus action and reaction buttons) to be clickable if they have the relevant actions left.
 
     @discord.ui.button(label="Action", style=ButtonStyle.primary)
     async def action(self, interaction: Interaction, button: Button):
@@ -726,12 +739,6 @@ async def apply(interaction: discord.Interaction, target: str, damage: str, cond
 )
 async def remove(interaction: discord.Interaction, target: str, condition: str = ""):
     outputMessage = ""
-    outputMessage += str(remove_logic(target, condition))
-    #Have it seperate so other commands can remove conditions too
-    if outputMessage == "" or outputMessage == "None": outputMessage = condition.title() + " has been removed from " + target.title()
-    await interaction.response.send_message(outputMessage)
-    
-def remove_logic(target: str, condition: str = ""):
     with open("Zed\\characters.csv") as characterFile:
         updatedCharFileLines = []
         for line in characterFile.readlines():
@@ -739,7 +746,8 @@ def remove_logic(target: str, condition: str = ""):
             if fields[0].lower().startswith(target.lower()):
                 if condition == "":
                     #No condition was entered
-                    return("Conditions active on " + target.title() + ": " + fields[12])
+                    await interaction.response.send_message("Conditions active on " + target.title() + ": " + fields[12])
+                    return()
                 else:
                     conditionList = [c.strip() for c in fields[12].split(" ")]
                     for cond in conditionList:
@@ -747,9 +755,9 @@ def remove_logic(target: str, condition: str = ""):
                             #If the condition modifies AC
                             acMod = int(cond[0:cond.index("Ac")])
                             fields[5] = str(int(fields[5])-acMod)
-                            #Get the acMod and remove it to the targets ac
+                            #Get the acMod and remove it from the target's ac
                         if "save." in cond:
-                            #If the condition gives/removes a stat save advantage
+                            #If the condition gives/removes a stat save advantage,
                             stat = cond[0:cond.index("save.")].upper() #includes the +/- at start
                             if stat.startswith("+") and stat in fields[9]: #If it adds the save, remove it (and target already is prof in the save)
                                 fields[9].remove("/" + stat[1:])
@@ -764,6 +772,7 @@ def remove_logic(target: str, condition: str = ""):
         for line in updatedCharFileLines:
             f.write(line.strip() + "\n")
             #This will truncate the file (remove its contents) and write the updated lines in.
+    await interaction.response.send_message(condition.title() + " has been removed from " + target.title())
 
 # Slash command: /Create Character (&Monster)
 @client.tree.command(name="create_character", description="To create a character for players (&Monsters for DM's). Very sensitive, please follow instructions") 
@@ -779,7 +788,7 @@ def remove_logic(target: str, condition: str = ""):
     vun_res_imm="A list of Vun/Res/Imm seperated by '/' and individual types seperated by space"
 )
 async def create_character(interaction: discord.Interaction, name: str, character_class: str, character_level: int, stats: str, max_hp: int, armor_class: int, proficiencies: str = "", saving_throws: str = "", vun_res_imm: str = ""):
-    #First sanatise the user inputs
+    #First, sanitise the user inputs
     name = name.strip()
     character_class = character_class.strip()
     stats = stats.strip()
@@ -797,7 +806,7 @@ async def create_character(interaction: discord.Interaction, name: str, characte
     for stat in stats.split("/"): #Rounding down
         statMods += str(int((int(stat)-10)/2)) + "/"
     statMods = statMods[:-1] #move the extra '/'
-    #We now should have all the info to write to the (backup) file. Next, santatise user inputs
+    #We now should have all the info to write to the (backup) file. Next, sanitise user inputs
     # Then format the Row and append it to the Bk file, then respond to the user
     newRow = [name, character_class + " " + str(character_level), stats, statMods, str(max_hp) + "/0/" + str(max_hp), str(armor_class), "30", str(profBonus), proficiencies, saving_throws, "0/0", vun_res_imm, "None"]
     with open("Zed\\charactersBK.csv", "a") as characterFileBK:
@@ -866,12 +875,12 @@ def roll_dice(dice_count: int, dice_sides: int, modifier: int = 0) -> int:
 
 #function to Roll ability checks/saving throws
 def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: str = "None", passive: bool = False):
-    #first get relevent information in the roller
+    #first get relevant information in the roller
     with open("Zed\\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")  #Break line into list of values
             if fields[0].lower().startswith(roller.lower()):
-                #If its the targets line
+                #If it's the target's line
                 rollerStatMods = fields[3].split("/") #List STR/DEX/CON/INT/WIS/CHA
                 rollerProfBonus = int(fields[7])
                 rollerProficiencies = fields[8].split("/") #List
@@ -881,10 +890,10 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
     modifier = int(rollerStatMods[statIndex])
     for ability in rollerProficiencies:
         if ability == abilityCheck:
-            #If proficient also add the prof bonus
+            #If proficient, also add the prof bonus
             modifier += rollerProfBonus
         if ability == abilityCheck+"X2":
-            #If expert add prof bonus twice
+            #If expert, add prof bonus twice
             modifier += rollerProfBonus + rollerProfBonus
     abilityRoll = roll_dice(1, 20, modifier)
     
@@ -902,7 +911,7 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
     return(abilityRoll)
         
 
-#function to roll damage (accounting for crits, resistances, immunities and vulrabilities)
+#function to roll damage (accounting for crits, resistances, immunities and vulnerabilities)
 def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit: int, saveMod: int, damageType: str, targetVunResImm: str, Conditions: str, onSave: str, advantage_override: str):
                 #e.g. 1d6, 2d10... ^add to the hit roll. ^Add to damage dice. ^e.g. targets AC, Spell Save DC. ^attackerConditions/targetConditions
     targetVunResImmParts = targetVunResImm.split("/")
@@ -922,25 +931,25 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
     Advantage = any(cond in advantageConditions for cond in targetConditions)         #Boolean
     if advantage_override == "disadvantage": Disadvantage = True
     elif advantage_override == "advantage": Advantage = True
-    #Assigns the override value if given (defult is advantage_override = "None")
+    #Assigns the override value if given (default is advantage_override = "None")
     rollToHit = roll_dice(1, 20, bonusToHit)
     #Takes the initial roll, we will now check on advantage and disadvantage to see if we roll again (and use that one instead)
     if Disadvantage and Advantage:
-        #Normal roll (cancel out), this is needed otherwise disadvanatge would have priority over advantage
+        #Normal roll (cancel out), this is needed otherwise disadvantage would have priority over advantage
         rollToHit = rollToHit
     elif Disadvantage:
-        #Disadvantage, roll again and use it if its lower
+        #Disadvantage, roll again and use it if it's lower
         alternateRollToHit = roll_dice(1, 20, bonusToHit)
         if alternateRollToHit < rollToHit: rollToHit = alternateRollToHit
     elif Advantage:
-        #Advantage, roll again and use it if its higher
+        #Advantage, roll again and use it if it's higher
         alternateRollToHit = roll_dice(1, 20, bonusToHit)
         if alternateRollToHit > rollToHit: rollToHit = alternateRollToHit
                  
     if rollToHit < contestToHit + saveMod:
         #Attack missed the target
         saved = True
-        #This wil be used at the end
+        #This will be used at the end
     
     #Roll damage now
     diceCount = int(damage_dice.split("d")[0])
@@ -951,7 +960,7 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
         damage += roll_dice(diceCount, diceSides)
         crit = True
         #Roll the dice twice
-    #Take into account damage type now
+    #Take into account the damage type now
     if damageType in targetImmunities: damage = 0
     elif damageType in targetResistances: damage = int(damage/2)
     elif damageType in targetVulnerabilities: damage = damage*2
@@ -961,77 +970,122 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
     return(damage, damageType, rollToHit, saved, crit)
 
 #Function to write to character file (apply damage and conditions to attacker/caster)
-def apply_effects(attacker: str, target: str, damage: int, Conditions: str, DeathSave = "none") -> bool:
+def apply_effects(attacker: str, target: str, damage: int, Conditions: str, DeathSave = "none") -> str:
     conditionsToApply = Conditions.split("/")
     targetConditionsToApply = conditionsToApply[0]
     casterConditionsToApply = conditionsToApply[1]
     updatedCharFileLines = []
-    targetZeroHp = False
+    returnString = ""
+    concentrationBroken = False
+    print("Applying effects")
     with open("Zed\\characters.csv") as characterFile:
-        for line in characterFile.readlines():
-            fields = line.split(",")  #Break line into list of values
-            if fields[0].strip().lower() == target.strip().lower():
-                #If its the targets line
-                #Applying dmg
-                hpValues = fields[4].split("/") #Split the HP field ("65/0/65") into parts
-                if int(hpValues[1]) > int(damage) and int(damage) > 0:
-                    #If the tempHp is higher than the dmg (and damage is positive, i.e. not healing)
-                    hpValues[1] = str(max(0, int(hpValues[1]) - int(damage))) #Apply damage to the temp hp
-                else:
-                    #if the targets tempHp is less than total damage
-                    damage -= int(hpValues[1]) #'absorb' the tempHp
-                    hpValues[1] = "0" #set tempHp to none
-                    hpValues[2] = str(max(0, int(hpValues[2]) - int(damage))) #Apply remainder damage
-                if int(hpValues[2]) == 0:
-                    targetZeroHp = True        
-                fields[4] = "/".join(hpValues)
+        characterLines = characterFile.readlines() #This stops the functions from being called within the interation of these lines to attempt to read this file while it is still open. Instead, we can save its lines to a variable and iterate through them
 
-                #Apply New Conditions
-                fields[12] = fields[12].strip() + targetConditionsToApply
-                #Change other stats based on the conditions on the target
-                for cond in fields[12].strip().split(" "):
-                    if "Ac." in cond:
-                        #If the condition modifies AC
-                        acMod = int(cond[0:cond.index("Ac")])
-                        fields[5] = str(int(fields[5])+acMod)
-                        #Get the acMod and add it to the targets ac
-                    if "save." in cond:
-                        #If the condition gives/removes a stat save advantage
-                        stat = cond[0:cond.index("save.")].upper() #includes the +/- at start
-                        if stat.startswith("+"): #If it adds the save
-                            fields[9] += "/" + stat[1:]
-                        elif stat.startswith("-") and stat in fields[9]: #If it removes the save (and target already is prof in the save)
-                            fields[9].remove("/" + stat[1:])
-            if fields[0].strip().lower() == attacker.strip().lower():
-                #If its the casters/attackers line
-                #Apply New Conditions
-                fields[12] = fields[12].strip() + casterConditionsToApply
-                #Apply Death Save (if any)
-                deathSaveValues = fields[10].split("/")
-                if DeathSave == "success": fields[10] = str(int(deathSaveValues[0])+1) + "/" + deathSaveValues[1]
-                if DeathSave == "fail": fields[10] = deathSaveValues[0] + "/" + str(int(deathSaveValues[1])+1)
-            line = ",".join(fields)  #Rebuild the full line, which will later replace the original (thus updating the hp)
-            #Now we add the adjusted line into a list
-            updatedCharFileLines.append(line.strip())
-            #with this list of strings (one string being one line of the csv) we can write it back into the file
+    for line in characterLines:
+        fields = line.split(",")  #Break line into list of values
+        if fields[0].strip().lower() == target.strip().lower():
+            #If its the targets line
+            #Applying dmg
+            hpValues = fields[4].split("/") #Split the HP field ("65/0/65") into parts
+            if int(hpValues[1]) > int(damage) and int(damage) > 0:
+                #If the tempHp is higher than the dmg (and damage is positive, i.e. not healing)
+                hpValues[1] = str(max(0, int(hpValues[1]) - int(damage))) #Apply damage to the temp hp
+            else:
+                #if the target's tempHp is less than the total damage
+                damage -= int(hpValues[1]) #'absorb' the tempHp
+                hpValues[1] = "0" #set tempHp to none
+                hpValues[2] = str(max(0, int(hpValues[2]) - int(damage))) #Apply remainder damage
+            hpValues[2] = max(hpValues[0], hpValues[2]) #Dont let the current hp exceed the max
+            if int(hpValues[2]) == 0:
+                returnString += "TargetZeroHp"        
+            fields[4] = "/".join(hpValues)
+                
+            #Apply New Conditions
+            fields[12] = fields[12].strip() + targetConditionsToApply
+            #Change other stats based on the new conditions on the target
+            for cond in targetConditionsToApply.split(" "):
+                if cond.strip() != "":
+                    fields = apply_condition_effects(fields, cond)
+            for cond in fields[12].strip().split(" "):
+                if "concentration" in cond and damage > 0: #Now check if the target has concentration, then check if the save it (to keep it)
+                    #Make a con save and compare it to a DC of 10 or half the dmg taken (whichever is higher)
+                    savingThrow = ability_check(fields[0].strip(), "CON", "None")
+                    if savingThrow < max(10, damage/2): #Failed ths save
+                        spellConcentrating = cond.split(":")[1].strip() #Get the spell that the target is concentrating on
+                        spellConcentratingTarget = cond.split(":")[2].replace("|", " ").strip() #Get the target of the spell (to remove its conditions)
+                        concentrationBroken = True
+                        returnString += "ConcentrationBroken"
+                        with open("Zed\\spells.csv") as spellFile:
+                            for line in spellFile.readlines():
+                                if line.split(",")[0].lower() == spellConcentrating:
+                                    spellConcentratingConditions = line.split(",")[8] #Open the spell file, find the spell being concentrated on
+                        fields[12] = fields[12].replace(" " + str(cond.strip()), "") #remove concentration
+        if fields[0].strip().lower() == attacker.strip().lower():
+            #If it's the casters/attackers line
+            #Apply New Conditions
+            fields[12] = fields[12].strip() + casterConditionsToApply
+            #Apply Death Save (if any)
+            deathSaveValues = fields[10].split("/")
+            if DeathSave == "success": fields[10] = str(int(deathSaveValues[0])+1) + "/" + deathSaveValues[1]
+            if DeathSave == "fail": fields[10] = deathSaveValues[0] + "/" + str(int(deathSaveValues[1])+1)
+
+        #Now do any extra things needed just before we write to the file
+        if concentrationBroken == True and fields[0].lower() == spellConcentratingTarget.lower(): #Remove the conditions that the concentrating spell was appliying
+            fields[12] = fields[12].strip()
+            for cond in spellConcentratingConditions.split(" "):
+                cond = cond.strip()
+                if cond in fields[12].split(" "):
+                    #First remove its effects.
+                    fields = apply_condition_effects(fields, cond, "-")
+                    #Now remove the condition
+                    fields[12] = fields[12].replace(" " + cond, "")
+                    
+        line = ",".join(fields)  #Rebuild the full line, which will later replace the original (thus updating the hp)
+        #Now we add the adjusted line into a list
+        updatedCharFileLines.append(line.strip())
+        #With this list of strings (one string being one line of the CSV), we can write it back into the file
     with open("Zed\\characters.csv", "w") as f:
         for line in updatedCharFileLines:
             f.write(line + "\n")
             #This will truncate the file (remove its contents) and write the updated lines in.
-    return(targetZeroHp)
+    return(returnString)
+
+#Function to apply, and remove conditional effects e.g. +2Ac or -DexSave
+def apply_condition_effects(charactersFields: list[str], condition: str, PosNegOverride: str = "") -> str:
+    #Change other stats based on the conditions on the character (+ve or -ve)
+    #Apply the override if given and needed 
+    if PosNegOverride == "-" and condition.startswith("+"):
+        condition = "-" + condition[1:]
+    elif PosNegOverride == "+" and condition.startswith("-"):
+        condition = "+" + condition[1:]
+    if "Ac." in condition:
+        #If the condition modifies AC
+        acMod = int(condition[0:condition.index("Ac")])
+        charactersFields[5] = str(int(charactersFields[5])+acMod)
+        #Get the acMod and add it to the target's ac
+    elif "save." in condition:
+        #If the condition gives/removes a stat save advantage
+        stat = condition[0:condition.index("save.")].upper() #includes the +/- at start
+        if stat.startswith("+"): #If it adds the save
+            charactersFields[9] += "/" + stat[1:]
+        elif stat.startswith("-") and stat[1:] in charactersFields[9]: #If it removes the save (and target already is prof in the save)
+            charactersFields[9] = charactersFields[9].replace("/" + stat[1:], "")
+    return(charactersFields)
 
 #Ideas to add:
     """
-Add Fuzzy Matching with difflib (so minor spelling mistakes dont void a command)
-Graphics of some kind to make it more user friendly and exciting to use, Somewhat used in encouter
-DONE ~~Manual damage/healing & conditions for people who dont use the bot (like)~~
-DONE ~~Hiding,Helping,Dodgeing~~
+Add Fuzzy Matching with difflib (so minor spelling mistakes don't void a command)
+Graphics of some kind to make it more user-friendly and exciting to use, somewhat used in encounter
+DONE ~~Manual damage/healing & conditions for people who don't use the bot (like)~~
+DONE ~~Hiding, Helping ,Dodgeing~~
 DONE ~~Allow a list of targets to be entered~~
-REJECTED **Give feedback on hp values on attack** Reason: Most DM's wont want to reveal their monsters HP bar to the players. instead, if the 'character' is not marked with M- (for monster) I will give their remaining hp on turn start.
-DONE ~~Add the moddifier to the dmg dice text~~
+REJECTED **Give feedback on hp values on attack** Reason: Most DM's wont want to reveal their monster's HP bar to the players. instead, if the 'character' is not marked with M- (for monster), I will give their remaining hp on turn start.
+DONE ~~Add the modifier to the dmg dice text~~
 Done ~~Target yourself~~
 Done ~~Abbility checks at will~~
 Done ~~Create a character~~
+DONE ~~Check and remove concentration on dmg effects (and give feedback to the user if it is) ~~
+Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible
     """
 
 # Start the bot
