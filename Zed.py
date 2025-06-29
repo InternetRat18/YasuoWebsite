@@ -27,7 +27,7 @@ class DnDBot(commands.Bot):
         devTesting = False
         if devTesting:
             print("Running in debug mode. Syncing to test guild.")
-            devGuildID = 0 #DEV_ID_REDACTED
+            devGuildID = 757478928653877309
             devGuild = discord.Object(id=devGuildID)
             synced = await self.tree.sync(guild=devGuild)
             print("Slash commands synced: " + str(len(synced)))
@@ -83,6 +83,12 @@ async def cast(interaction: discord.Interaction, spell: str, target: str, caster
 
 async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_level: int = 0, advantage_override: str = "none"):
     #First we gain the relevent information from the caster & target
+    spellSave = ""
+    damage = 0
+    conditionsAlreadyPresent = ""
+    targetConditionsToApply = ""
+    casterConditionsToApply = ""
+    crit = False
     with open("Zed\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")
@@ -169,8 +175,6 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                     if crit is True: spellDamage = str(int(spellDamage.split("d")[0])*2) + "d" + spellDamage.split("d")[1]
                 else:
                     #If it doesn't apply damage
-                    damage = 0
-                    crit = False
                     if saveDC <= 0:
                         saved = False
                         rollToHit = 0
@@ -189,7 +193,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                         if condition.startswith("#"):
                             casterConditionsToApply += " " + condition[1:]
                             if "concentration" in condition: #If its concentration being self-applied, give reference to the spell
-                                casterConditionsToApply += ":" + spell + ":" + target.replace(" ", "|")
+                                casterConditionsToApply += ":" + spell.replace(" ", "|") + ":" + target.replace(" ", "|")
                         elif condition in targetConditions:
                             conditionsAlreadyPresent += " " + condition.title()
                         else:
@@ -205,9 +209,9 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     if upcast_level > 0: outputMessage += "\n:magic_wand: Attempted  to upcast " + spell.title() + " to level " + str(upcast_level)
     if advantage_override != "none": outputMessage += "\n:warning:Manual (Dis)Advantage Override was given: " + advantage_override
     #Now we write the effects to the the char file updated (There is a characterBK.csv file to restore it to its original) and remove the action from the player.
-    applyEffectsRetunrString = apply_effects(caster, target, damage, targetConditionsToApply+"/"+casterConditionsToApply)
-    if "TargetZeroHp" in applyEffectsRetunrString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
-    if "ConcentrationBroken" in applyEffectsRetunrString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
+    applyEffectsReturnString = apply_effects(caster, target, damage, targetConditionsToApply+"/"+casterConditionsToApply)
+    if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+    if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
     if spellActionUsage[1:] == "action": await encounter(interaction, "remove action", "action")
     elif spellActionUsage == "bonusaction": await encounter(interaction, "remove action", "bonus action") 
     elif spellActionUsage == "reaction": await encounter(interaction, "remove action", "reaction")
@@ -249,6 +253,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
     seccondaryDamageDiceTotal = ""
     attackerConditionsToApply = ""
     targetConditionsToApply = ""
+    extraOutput = ""
     #First, we gain the relevant information from the attacker & target
     with open("Zed\\characters.csv") as characterFile:
         for line in characterFile.readlines():
@@ -315,6 +320,18 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 if crit is False: damageDiceTotal += fields[1] + damageType.title() + "+" + str(bonusToDmg) + "+"
                 elif crit is True: damageDiceTotal += str(int(fields[1].split("d")[0])*2) + "d" + fields[1].split("d")[1] + damageType.title() + "+" + str(bonusToDmg) + "+"
                 #Count the total damage exclusively for writing back the (character) file
+
+                #Special effects:
+                print("Att cond :" + attackerConditions)
+                if not saved:
+                    #if the attack hit
+                    if "hunters|mark" in attackerConditions and target.lower() in attackerConditions:
+                        #If the attacker is concentrating on hunters mark, on the target. Then add 1d6 dmg
+                        markDamage = roll_dice(1, 6, 0)
+                        damage += markDamage
+                        damageTotal += markDamage
+                        damageDiceTotal += "1d6+"
+                        extraOutput += "\n:book: Special effect, 'Hunters Mark' triggered!"
                 
             if fields[0].startswith(secondary_attack) is True and "special" not in fields[3]:
                 secondary_attack = fields[0]
@@ -433,18 +450,19 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
         if attack != "grapple": outputMessage += "\n:dart: Did the main attack hit?: " + ("✅" if not saved else "❌") + " (" + str(rollToHit) + "Hit vs " + str(targetAC) + "Ac)"
         elif attack == "grapple": outputMessage += "\n:dart: Did the Grapple succeed?: " + ("✅" if not saved else "❌") + " (" + str(attackerAthleticsCheck) + "Athletics vs" + str(targetAC) + "Ac)"
         outputMessage += "\n:dart: Did the off-hand attack hit?: " + ("✅" if not secondaryAttackSaved else "❌") + " (" + str(secondaryAttackRollToHit) + "Hit vs " + str(targetAC) + "Ac)"
+        if extraOutput != "": outputMessage += extraOutput #Extra info from special effects
         if damageTotal > 0 and damageType == secondaryAttackDamageType: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage+secondaryAttackDamage) + damageType.title() + "**"
         elif damageTotal > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage) + damageType.title() + "** & **" + str(secondaryAttackDamage) + secondaryAttackDamageType.title() + "**"
         if not saved: outputMessage += " (" + damageDiceTotal[:-1] + ")"
         if not saved and not secondaryAttackSaved: outputMessage += "+"
-        if not secondaryAttackSaved: outputMessage += "(" + damageDiceTotal[:-1] + ")"
+        if not secondaryAttackSaved: outputMessage += "(" + seccondaryDamageDiceTotal[:-1] + ")"
         if crit is True: outputMessage += "\n:tada: CRITICAL HIT! Your main attack damage dice was rolled twice"
         if secondaryAttackCrit is True: outputMessage += "\n:tada: CRITICAL HIT! Your off-hand attack damage dice was rolled twice"
         if targetConditionsToApply != "": outputMessage +="\n:face_with_spiral_eyes: The following conditions were applied:" + targetConditionsToApply
         if advantage_override != "none": outputMessage += "\n:warning:Manual (Dis)Advantage Override was given: " + advantage_override
-        applyEffectsRetunrString = apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply)
-        if "TargetZeroHp" in applyEffectsRetunrString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
-        if "ConcentrationBroken" in applyEffectsRetunrString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
+        applyEffectsReturnString = apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply)
+        if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+        if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
         await interaction.response.send_message(outputMessage)
         await encounter(interaction, "remove action", "action")
         await encounter(interaction, "remove action", "bonus action") 
@@ -453,6 +471,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
         outputMessage = "*" + attacker.title() + "* has used *" + attack.title() + "* targeting *" + target.title() + "*"
         if attack != "grapple": outputMessage += "\n:dart: Did the attack hit?: " + ("✅" if not saved else "❌") + " (" + str(rollToHit) + "Hit vs " + str(targetAC) + "Ac)"
         elif attack == "grapple": outputMessage += "\n:dart: Did the Grapple succeed?: " + ("✅" if not saved else "❌") + " (" + str(attackerAthleticsCheck) + "Athletics vs " + str(targetContestRoll) + grappleSkill.title() + ")"
+        if extraOutput != "": outputMessage += extraOutput #Extra info from special effects
         if damage > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage) + damageType.title() + "** (" + damageDiceTotal[:-1] + ")"
         if crit is True: outputMessage += "\n:tada: CRITICAL HIT! Your damage dice was rolled twice"
         if targetConditionsToApply != "": outputMessage +="\n:face_with_spiral_eyes: The following conditions were applied:" + targetConditionsToApply
@@ -461,9 +480,9 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
             if attack == "grapple": outputMessage += "\n:warning: Secondary attacks used while attemping a grapple may not gain advantage. Your secondary attack has been canceled."
             if attack == "net": outputMessage += "\n:warning: After using the net attack, you may not use any other attacks this turn."
             damageTotal -= secondaryAttackDamage
-        applyEffectsRetunrString = apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply)
-        if "TargetZeroHp" in applyEffectsRetunrString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
-        if "ConcentrationBroken" in applyEffectsRetunrString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
+        applyEffectsReturnString = apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply)
+        if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
+        if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
         await interaction.response.send_message(outputMessage)
         await encounter(interaction, "remove action", "action")
     #The effects were written to the the char file updated (There is a characterBK.csv file to restore it to its original) and the action was removed from the player.
@@ -665,7 +684,7 @@ async def encounter(interaction, command: str, info1: str = "", info2: str = "")
                 encounter_state["actionsLeft"][encounter_state["currentIndex"]][2] = 0
             await focusMessage.edit(view=ActionView())
         except Exception as e:
-            print(str(e) + "Action could not be removed, is enounter started?")
+            print(str(e) + ". " + info1.title() + " could not be removed, is enounter started?")
         
 class ActionView(View):
     def __init__(self):
@@ -1011,7 +1030,7 @@ def apply_effects(attacker: str, target: str, damage: int, Conditions: str, Deat
                     #Make a con save and compare it to a DC of 10 or half the dmg taken (whichever is higher)
                     savingThrow = ability_check(fields[0].strip(), "CON", "None")
                     if savingThrow < max(10, damage/2): #Failed ths save
-                        spellConcentrating = cond.split(":")[1].strip() #Get the spell that the target is concentrating on
+                        spellConcentrating = cond.split(":")[1].replace("|", " ").strip() #Get the spell that the target is concentrating on
                         spellConcentratingTarget = cond.split(":")[2].replace("|", " ").strip() #Get the target of the spell (to remove its conditions)
                         concentrationBroken = True
                         returnString += "ConcentrationBroken"
