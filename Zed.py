@@ -174,22 +174,50 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                     targetSaveMod = int(targetStatMods.split("/")[int(["str", "dex", "con", "int", "wis", "cha"].index(str(spellSave)))])
                     if spellSave in targetSavingThrows:
                         targetSaveMod += targetProfBonus
+                        
                 if spellDamage != "":
-                    #If the spell applies damage
-                    damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus, 0, saveDC, targetSaveMod, spellDamageType, targetVunResImm, casterConditions+"/"+targetConditions, spellOnSave.title(), advantage_override)
-                    if crit is True: spellDamage = str(int(spellDamage.split("d")[0])*2) + "d" + spellDamage.split("d")[1]
+                    # If the spell applies damage
+                    totalDamage = 0
+                    damageBreakdown = []
+                    crit = False  # default unless a crit occurs
+                    print("vv Assessing:" + spellDamage)
+                    print("d count:" + str(spellDamage.count("d")))
+                    print("+ count:" + str(spellDamage.count("+")))
+                    if "+" in spellDamage and spellDamage.count("d") == spellDamage.count("+")+1:
+                        splitDamages = spellDamage.split("+")
+                        splitDamageTypes = spellDamageType.split("/")
+                        for index, damageDiceForm in enumerate(splitDamages):
+                            damageType = splitDamageTypes[index] if index < len(splitDamageTypes) else splitDamageTypes[-1]
+                            partDamage, partDamageType, rollToHit, saved, partCrit = calc_damage(damageDiceForm.strip() , casterSpellAttBonus, 0, saveDC,targetSaveMod, damageType.strip(), targetVunResImm, casterConditions+"/"+targetConditions, spellOnSave.title(), advantage_override)
+                            totalDamage += partDamage
+                            damageBreakdown.append("**" + str(partDamage) + damageType.strip().title() + "** (" + damageDiceForm.strip() + ")")
+                            print(str(partDamage) + damageType.strip().title() + " (" + damageDiceForm.strip() + ")")
+                            if partCrit:
+                                crit = True
+                        damage = totalDamage
+                    else: #Regular dice roll
+                        flatDamage = 0
+                        if "+" in spellDamage: #Regular dice roll + flat amount
+                            flatDamage = int(spellDamage.split("+")[1])
+                            spellDamage = spellDamage.split("+")[0]
+                            damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus, flatDamage, saveDC, targetSaveMod, spellDamageType, targetVunResImm, casterConditions + "/" + targetConditions, spellOnSave.title(), advantage_override)
+                        else:
+                            damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus,0,saveDC,targetSaveMod,spellDamageType,targetVunResImm,casterConditions + "/" + targetConditions,spellOnSave.title(),advantage_override)
+                        damageBreakdown.append("**" + str(damage) + spellDamageType.title() + "** (" + spellDamage + spellDamageType.title() + (" + " + str(flatDamage) if flatDamage > 0 else "") + ")")
+
+                    if crit:
+                        spellDamage = "+".join(splitDamages if "+" in spellDamage else [spellDamage])
+                        # optionally double dice formula if needed elsewhere
+
                 else:
-                    #If it doesn't apply damage
+                    # If it doesn't apply damage
                     if saveDC <= 0:
                         saved = False
                         rollToHit = 0
                     else:
                         rollToHit = roll_dice(1, 20, targetSaveMod)
-                        if rollToHit >= saveDC:
-                            saved = True
-                        else:
-                            saved = False
-                    
+                        saved = rollToHit >= saveDC
+
                 casterConditionsToApply = ""
                 targetConditionsToApply = ""
                 conditionsAlreadyPresent = ""
@@ -206,7 +234,8 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     outputMessage = "*" + caster.title() + "* has casted *" + spell.title() + "* targeting *" + target.title() + "*"
     if spellSave == "ac": outputMessage += "\n:dart: Did the spell succeed?: " + ("❌" if saved else "✅") + " (" + str(rollToHit) + "Hit vs " + str(saveDC) + "Ac)"
     elif spellSave != "Unknown" and spellSave != "": outputMessage += "\n:dart: Did the spell succeed?: " + ("❌" if saved else "✅") + " (" + str(saveDC) + "SpellDC vs " + str(rollToHit) + spellSave.title() + ")"
-    if damage > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage) + spellDamageType.title() + "** (" + spellDamage + "+" + str(casterSpellAttBonus) + ")"
+    #if damage > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage) + spellDamageType.title() + "** (" + spellDamage + "+" + str(casterSpellAttBonus) + ")"
+    if damage > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: " + " & ".join(damageBreakdown)
     if conditionsAlreadyPresent.strip() != "": outputMessage += "\n:warning:These conditions were already present: " + conditionsAlreadyPresent.strip().title()
     if targetConditionsToApply.strip() != "": outputMessage += "\n:face_with_spiral_eyes: The following conditions were applied: " + targetConditionsToApply.strip().title()
     if "concentration" in casterConditionsToApply.strip(): outputMessage += "\n:eye: Self condiitons applied: " + casterConditionsToApply.strip().title()
@@ -1020,6 +1049,7 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
     if saved is True:
         if onSave == "Miss": damage = 0
         elif onSave == "Half": damage = int(damage/2)
+    print("Damage calculated to be: " + str(damage))
     return(damage, damageType, rollToHit, saved, crit)
 
 #Function to write to character file (apply damage and conditions to attacker/caster)
@@ -1030,22 +1060,18 @@ def apply_effects(attacker: str, target: str, damage: int, Conditions: str, Deat
     updatedCharFileLines = []
     returnString = ""
     concentrationBroken = False
-    print("Applying effects")
+    print("Applying effects. Damage: " + str(damage))
     with open("Zed\\characters.csv") as characterFile:
         characterLines = characterFile.readlines() #This stops the functions from being called within the interation of these lines to attempt to read this file while it is still open. Instead, we can save its lines to a variable and iterate through them
 
     for line in characterLines:
         fields = line.split(",")  #Break line into list of values
-        print(">" + fields[0].strip().lower() + "<!=>" + target.strip().lower() + "<")
         if fields[0].strip().lower() == target.strip().lower():
             #If its the targets line
             #Applying dmg
-            print("Applying dmg: " + str(damage))
-            print("^ " + fields[4])
             hpValues = fields[4].split("/") #Split the HP field ("65/0/65") into parts
             if int(hpValues[1]) > int(damage) and int(damage) > 0:
                 #If the tempHp is higher than the dmg (and damage is positive, i.e. not healing)
-                print("Using TempHP")
                 hpValues[1] = str(max(0, int(hpValues[1]) - int(damage))) #Apply damage to the temp hp
             elif int(hpValues[1]) <= int(damage) and int(damage) > 0:
                 #if the target's tempHp is less than the total damage
@@ -1055,11 +1081,9 @@ def apply_effects(attacker: str, target: str, damage: int, Conditions: str, Deat
             elif damage < 0: #If healing the target
                 hpValues[2] = str(int(hpValues[2]) - int(damage)) #Minus the negative dmg ()
                 if int(hpValues[2]) > int(hpValues[0]): hpValues[2] = hpValues[0] #Dont let the current hp exceed the max
-                print("Capped the value, is now:" + str(hpValues[2]))
             if int(hpValues[2]) == 0:
                 returnString += "TargetZeroHp"
             fields[4] = "/".join(hpValues)
-            print("^> " + fields[4])
                 
             #Apply New Conditions
             fields[12] = fields[12].strip() + targetConditionsToApply
@@ -1146,6 +1170,8 @@ Done ~~Target yourself~~
 Done ~~Abbility checks at will~~
 Done ~~Create a character~~
 DONE ~~Check and remove concentration on dmg effects (and give feedback to the user if it is) ~~
+Partly done: Expand spell list, allow for multible damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)
+^^^ There is a bug with this that makes the crits/hit rolls roll seperately and can give unclear/incorrect crit damage and 'did tis spell hit' text. Don't have time to fix before beta
 Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible
     """
 
