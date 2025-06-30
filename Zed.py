@@ -71,15 +71,20 @@ async def cast(interaction: discord.Interaction, spell: str, target: str, caster
         #There is a list of targets given
         for singleTarget in target.split(","):
             singleTarget = singleTarget.strip()
-            completeOutputMessage += await cast_logic(interaction, spell, singleTarget, caster, upcast_level, advantage_override)
+            OutputMessage, spellActionUsage, caster = await cast_logic(interaction, spell, singleTarget, caster, upcast_level, advantage_override)
+            completeOutputMessage += OutputMessage
             completeOutputMessage += "\n" + "\n"
             #Call the logic for each, joining the messages with double newline characters
         completeOutputMessage = completeOutputMessage.strip()
         await interaction.response.send_message(completeOutputMessage)
         #remove the extra newline character and send it as one
     else:
-        await interaction.response.send_message(await cast_logic(interaction, spell, target, caster, upcast_level, advantage_override))
+        OutputMessage, spellActionUsage, caster = await cast_logic(interaction, spell, target, caster, upcast_level, advantage_override)
+        await interaction.response.send_message(OutputMessage)
         #Otherwise, call the logic for the single target
+    if spellActionUsage[1:] == "action": await encounter(interaction, "remove action", "action", caster)
+    elif spellActionUsage == "bonusaction": await encounter(interaction, "remove action", "bonus action", caster) 
+    elif spellActionUsage == "reaction": await encounter(interaction, "remove action", "reaction", caster)
 
 async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_level: int = 0, advantage_override: str = "none"):
     #First we gain the relevent information from the caster & target
@@ -212,10 +217,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     applyEffectsReturnString = apply_effects(caster, target, damage, targetConditionsToApply+"/"+casterConditionsToApply)
     if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
     if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
-    if spellActionUsage[1:] == "action": await encounter(interaction, "remove action", "action")
-    elif spellActionUsage == "bonusaction": await encounter(interaction, "remove action", "bonus action") 
-    elif spellActionUsage == "reaction": await encounter(interaction, "remove action", "reaction")
-    return(outputMessage)
+    return(outputMessage, spellActionUsage, caster)
 
 # Slash command: /Attack
 @client.tree.command(name="attack", description="For all Non-magical attacks")
@@ -322,7 +324,6 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 #Count the total damage exclusively for writing back the (character) file
 
                 #Special effects:
-                print("Att cond :" + attackerConditions)
                 if not saved:
                     #if the attack hit
                     if "hunters|mark" in attackerConditions and target.lower() in attackerConditions:
@@ -331,7 +332,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                         damage += markDamage
                         damageTotal += markDamage
                         damageDiceTotal += "1d6+"
-                        extraOutput += "\n:book: Special effect, 'Hunters Mark' triggered!"
+                        extraOutput += "\n:book: Special effect 'Hunters Mark' triggered!"
                 
             if fields[0].startswith(secondary_attack) is True and "special" not in fields[3]:
                 secondary_attack = fields[0]
@@ -362,6 +363,16 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 damageTotal += secondaryAttackDamage
                 if secondaryAttackCrit is False: seccondaryDamageDiceTotal += fields[1] + secondaryAttackDamageType.title() + "+" + str(bonusToDmg) + "+"
                 elif secondaryAttackCrit is True: seccondaryDamageDiceTotal += str(int(fields[1].split("d")[0])*2) + "d" + fields[1].split("d")[1] + secondaryAttackDamageType.title() + "+" + str(bonusToDmg) + "+"
+
+                if not secondaryAttackSaved:
+                    #if the secondary attack hit
+                    if "hunters|mark" in attackerConditions and target.lower() in attackerConditions:
+                        #If the attacker is concentrating on hunters mark, on the target. Then add 1d6 dmg to the secondary attack
+                        markDamage = roll_dice(1, 6, 0)
+                        secondaryAttackDamage += markDamage
+                        damageTotal += markDamage
+                        seccondaryDamageDiceTotal += "1d6+"
+                        extraOutput += "\n:book: Special effect 'Hunters Mark' triggered from off-hand!"
                 
             elif fields[0].startswith(secondary_attack) is True and "special" in fields[3]:
                 #If the seccondary attack is a special attack, these require unique logic and thus is easier to hard code them, especily due to them being so few 'special' attacks.
@@ -454,8 +465,8 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
         if damageTotal > 0 and damageType == secondaryAttackDamageType: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage+secondaryAttackDamage) + damageType.title() + "**"
         elif damageTotal > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage) + damageType.title() + "** & **" + str(secondaryAttackDamage) + secondaryAttackDamageType.title() + "**"
         if not saved: outputMessage += " (" + damageDiceTotal[:-1] + ")"
-        if not saved and not secondaryAttackSaved: outputMessage += "+"
-        if not secondaryAttackSaved: outputMessage += "(" + seccondaryDamageDiceTotal[:-1] + ")"
+        if not saved and not secondaryAttackSaved: outputMessage += " +"
+        if not secondaryAttackSaved: outputMessage += " (" + seccondaryDamageDiceTotal[:-1] + ")"
         if crit is True: outputMessage += "\n:tada: CRITICAL HIT! Your main attack damage dice was rolled twice"
         if secondaryAttackCrit is True: outputMessage += "\n:tada: CRITICAL HIT! Your off-hand attack damage dice was rolled twice"
         if targetConditionsToApply != "": outputMessage +="\n:face_with_spiral_eyes: The following conditions were applied:" + targetConditionsToApply
@@ -464,8 +475,8 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
         if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
         if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
         await interaction.response.send_message(outputMessage)
-        await encounter(interaction, "remove action", "action")
-        await encounter(interaction, "remove action", "bonus action") 
+        await encounter(interaction, "remove action", "action", attacker)
+        await encounter(interaction, "remove action", "bonus action", attacker) 
     else:
         #No secondary attack was given, and the attack wasn't a grapple
         outputMessage = "*" + attacker.title() + "* has used *" + attack.title() + "* targeting *" + target.title() + "*"
@@ -484,7 +495,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
         if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
         if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
         await interaction.response.send_message(outputMessage)
-        await encounter(interaction, "remove action", "action")
+        await encounter(interaction, "remove action", "action", attacker)
     #The effects were written to the the char file updated (There is a characterBK.csv file to restore it to its original) and the action was removed from the player.
     
 # Slash command: /Action
@@ -513,7 +524,7 @@ async def action(interaction: discord.Interaction, character: str, action: str, 
                 target = fields[0]
     if action == "Help":
         apply_effects("None", target, 0, "Helped.1/") #Apply the helped condition for 1 turn
-        await encounter(interaction, "remove action", "action")
+        await encounter(interaction, "remove action", "action", character)
         await interaction.response.send_message(target.title() + " is being helped this round.")
     elif action == "Hide":
         #Make a stealth check and contest it with a passive perception on the target (if any)
@@ -529,7 +540,7 @@ async def action(interaction: discord.Interaction, character: str, action: str, 
             await interaction.response.send_message(character.title() + ", you think you are hidden. ❌ (You actually are NOT)")
     elif action == "Dodge":
         apply_effects("None", target, 0, "Dodging.1/")
-        await encounter(interaction, "remove action", "action")
+        await encounter(interaction, "remove action", "action", character)
         await interaction.response.send_message(character.title() + ", you focus your effort on dodging until the start of your next turn.")
         
 # Slash command: /Search
@@ -588,7 +599,7 @@ async def encounter(interaction, command: str, info1: str = "", info2: str = "")
                          + " (" + encounter_state["characterOwners"][encounter_state["currentIndex"]] + ") is starting their turn."
                          + "\n:hourglass: " + encounter_state["characterOrder"][(encounter_state["currentIndex"] + 1) % len(encounter_state["characterOrder"])].title()
                          + " (" + encounter_state["characterOwners"][(encounter_state["currentIndex"] + 1) % len(encounter_state["characterOwners"])] + ")" + " has their turn next."
-                         + "\n:stopwatch: You will have five minutes to use your actions."
+                         + "\n:stopwatch: You will have ten(10) minutes to use your actions."
                          + "\n:notepad_spiral: Check off your actions below as you go to keep track!")
         global focusMessage
         #Open the character to see if we can find it, if we can check if player needs death saves.
@@ -675,24 +686,47 @@ async def encounter(interaction, command: str, info1: str = "", info2: str = "")
         await encounter(interaction, "start turn")
     elif command == "remove action":
         try: #Allows /cast and /attack to be used outside of an encounter
-            if info1 == "action":
-                encounter_state["actionsLeft"][encounter_state["currentIndex"]][0] = max(encounter_state["actionsLeft"][encounter_state["currentIndex"]][0]-1, 0)
-                #Will -1, but wont go below 0
-            elif info1 == "bonus action":
-                encounter_state["actionsLeft"][encounter_state["currentIndex"]][1] = 0
-            elif info1 == "reaction":
-                encounter_state["actionsLeft"][encounter_state["currentIndex"]][2] = 0
+            if info2 != "": #If a character is entered
+                lowerCharacterOrderList = [item.lower() for item in encounter_state["characterOrder"]]
+                print("Removing " + info1.title() + " from " + info2.lower() + ".")
+                if info1 == "action":
+                    if encounter_state["actionsLeft"][lowerCharacterOrderList.index(info2.lower())][0] <= 0: #If it already is 0, send a follow up message
+                        message = await interaction.original_response()
+                        await message.edit(content=message.content + "\n:grey_exclamation: You did not have the required " + info1.title() + " to do that (effects still applied, " + info1.title() + " still removed).")
+                    encounter_state["actionsLeft"][lowerCharacterOrderList.index(info2.lower())][0] -= 1
+                    #Should remove the reaction from the character entered in info2
+                elif info1 == "bonus action":
+                    if encounter_state["actionsLeft"][lowerCharacterOrderList.index(info2.lower())][1] == 0: #If it already is 0, send a follow up message
+                        message = await interaction.original_response()
+                        await message.edit(content=message.content + "\n:grey_exclamation: You did not have the required " + info1.title() + " to do that (effects still applied, " + info1.title() + " still removed).")
+                    encounter_state["actionsLeft"][lowerCharacterOrderList.index(info2.lower())][1] = 0
+                    #Should remove the reaction from the character entered in info2
+                elif info1 == "reaction":
+                    if encounter_state["actionsLeft"][lowerCharacterOrderList.index(info2.lower())][2] == 0: #If it already is 0, send a follow up message
+                        message = await interaction.original_response()
+                        await message.edit(content=message.content + "\n:grey_exclamation: You did not have the required " + info1.title() + " to do that (effects still applied, " + info1.title() + " still removed).")
+                    encounter_state["actionsLeft"][lowerCharacterOrderList.index(info2.lower())][2] = 0
+                    #Should remove the reaction from the character entered in info2
+            else: #remove it from the current characters turn
+                print("No character entered, removing " + info1.title() + " from current indexed character.")
+                if info1 == "action":
+                    encounter_state["actionsLeft"][encounter_state["currentIndex"]][0] = max(encounter_state["actionsLeft"][encounter_state["currentIndex"]][0]-1, 0)
+                    #Will -1, but wont go below 0
+                elif info1 == "bonus action":
+                    encounter_state["actionsLeft"][encounter_state["currentIndex"]][1] = 0
+                elif info1 == "reaction":
+                    encounter_state["actionsLeft"][encounter_state["currentIndex"]][2] = 0
             await focusMessage.edit(view=ActionView())
         except Exception as e:
             print(str(e) + ". " + info1.title() + " could not be removed, is enounter started?")
         
 class ActionView(View):
     def __init__(self):
-        super().__init__(timeout=300) #Max timeout time is 15mins (900s)
+        super().__init__(timeout=600) #Max timeout time is 15mins (900s)
 
         for index, item in enumerate(self.children):
             if index != 3:
-                if encounter_state["actionsLeft"][encounter_state["currentIndex"]][index] == 0:
+                if encounter_state["actionsLeft"][encounter_state["currentIndex"]][index] <= 0:
                     item.disabled = True
         #Only allow the action buttons (action, bonus action and reaction buttons) to be clickable if they have the relevant actions left.
 
@@ -739,10 +773,10 @@ class ActionView(View):
         app_commands.Choice(name=cond, value=cond) for cond in ["Invisible", "Hidden", "Surprised", "Flanking", "Helped", "FaerieFire", "GuidingBolt", "Unaware", "Blinded", "Prone", "Poisoned", "Restrained", "Grappled", "Obscured", "Exhaustion", "Silenced", "Dodging"][:25]  # must be ≤25
         ]
 )
-async def apply(interaction: discord.Interaction, target: str, damage: str, condition: str = "", condition_duration: str = "99"):
+async def apply(interaction: discord.Interaction, target: str, damage: int, condition: str = "", condition_duration: str = "99"):
     apply_effects("none", target, damage, str(condition) + "." + condition_duration + "/")
     outputMessage = "The target has "
-    if int(damage) >= 0: outputMessage += "taken " + damage + " damage."
+    if int(damage) >= 0: outputMessage += "taken " + str(damage) + " damage."
     elif int(damage) < 0: outputMessage += "been healed for " + str(int(damage)*-1) + " damage."
     if condition != "":
         outputMessage += "\n" + str(condition) + " has also been applied"
@@ -1002,22 +1036,30 @@ def apply_effects(attacker: str, target: str, damage: int, Conditions: str, Deat
 
     for line in characterLines:
         fields = line.split(",")  #Break line into list of values
+        print(">" + fields[0].strip().lower() + "<!=>" + target.strip().lower() + "<")
         if fields[0].strip().lower() == target.strip().lower():
             #If its the targets line
             #Applying dmg
+            print("Applying dmg: " + str(damage))
+            print("^ " + fields[4])
             hpValues = fields[4].split("/") #Split the HP field ("65/0/65") into parts
             if int(hpValues[1]) > int(damage) and int(damage) > 0:
                 #If the tempHp is higher than the dmg (and damage is positive, i.e. not healing)
+                print("Using TempHP")
                 hpValues[1] = str(max(0, int(hpValues[1]) - int(damage))) #Apply damage to the temp hp
-            else:
+            elif int(hpValues[1]) <= int(damage) and int(damage) > 0:
                 #if the target's tempHp is less than the total damage
                 damage -= int(hpValues[1]) #'absorb' the tempHp
                 hpValues[1] = "0" #set tempHp to none
                 hpValues[2] = str(max(0, int(hpValues[2]) - int(damage))) #Apply remainder damage
-            hpValues[2] = max(hpValues[0], hpValues[2]) #Dont let the current hp exceed the max
+            elif damage < 0: #If healing the target
+                hpValues[2] = str(int(hpValues[2]) - int(damage)) #Minus the negative dmg ()
+                if int(hpValues[2]) > int(hpValues[0]): hpValues[2] = hpValues[0] #Dont let the current hp exceed the max
+                print("Capped the value, is now:" + str(hpValues[2]))
             if int(hpValues[2]) == 0:
-                returnString += "TargetZeroHp"        
+                returnString += "TargetZeroHp"
             fields[4] = "/".join(hpValues)
+            print("^> " + fields[4])
                 
             #Apply New Conditions
             fields[12] = fields[12].strip() + targetConditionsToApply
