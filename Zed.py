@@ -163,32 +163,34 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                 targetSaveMod = 0 #By defult
                 saveType = "Unknown"
                 saveDC = 0 #By defult it will always hit (for spells like haste)
-                
+
+                critImmune = False
                 if spellSave == "ac":
                     saveDC = targetAC
                     saveType = "Ac"
                 elif spellSave in ["str", "dex", "con", "int", "wis", "cha"]:
                     #if the spell requires a stat save
                     saveDC = casterSpellSaveDC
+                    casterSpellAttBonus = 0 #Irrelevent in this case, set to 0
                     saveType = spellSave
+                    critImmune = True
                     targetSaveMod = int(targetStatMods.split("/")[int(["str", "dex", "con", "int", "wis", "cha"].index(str(spellSave)))])
                     if spellSave in targetSavingThrows:
                         targetSaveMod += targetProfBonus
-                        
+
                 if spellDamage != "":
                     # If the spell applies damage
                     totalDamage = 0
                     damageBreakdown = []
                     crit = False  # default unless a crit occurs
-                    print("vv Assessing:" + spellDamage)
-                    print("d count:" + str(spellDamage.count("d")))
-                    print("+ count:" + str(spellDamage.count("+")))
                     if "+" in spellDamage and spellDamage.count("d") == spellDamage.count("+")+1:
                         splitDamages = spellDamage.split("+")
                         splitDamageTypes = spellDamageType.split("/")
+                        rollToHit = 0
                         for index, damageDiceForm in enumerate(splitDamages):
                             damageType = splitDamageTypes[index] if index < len(splitDamageTypes) else splitDamageTypes[-1]
-                            partDamage, partDamageType, rollToHit, saved, partCrit = calc_damage(damageDiceForm.strip() , casterSpellAttBonus, 0, saveDC,targetSaveMod, damageType.strip(), targetVunResImm, casterConditions+"/"+targetConditions, spellOnSave.title(), advantage_override)
+                            partDamage, partDamageType, rollToHit, saved, partCrit = calc_damage(damageDiceForm.strip(), casterSpellAttBonus, 0, saveDC, targetSaveMod, damageType.strip(), targetVunResImm, casterConditions+"/"+targetConditions, spellOnSave.title(), advantage_override, critImmune, rollToHit)
+                            print(f'Dmg:{partDamage}, Type:{partDamageType}, Roll:{rollToHit}, Saved?:{saved}, Crit?:{partCrit}')
                             totalDamage += partDamage
                             damageBreakdown.append("**" + str(partDamage) + damageType.strip().title() + "** (" + damageDiceForm.strip() + ")")
                             print(str(partDamage) + damageType.strip().title() + " (" + damageDiceForm.strip() + ")")
@@ -200,9 +202,9 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                         if "+" in spellDamage: #Regular dice roll + flat amount
                             flatDamage = int(spellDamage.split("+")[1])
                             spellDamage = spellDamage.split("+")[0]
-                            damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus, flatDamage, saveDC, targetSaveMod, spellDamageType, targetVunResImm, casterConditions + "/" + targetConditions, spellOnSave.title(), advantage_override)
+                            damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus, flatDamage, saveDC, targetSaveMod, spellDamageType, targetVunResImm, casterConditions + "/" + targetConditions, spellOnSave.title(), advantage_override, critImmune)
                         else:
-                            damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus,0,saveDC,targetSaveMod,spellDamageType,targetVunResImm,casterConditions + "/" + targetConditions,spellOnSave.title(),advantage_override)
+                            damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus,0,saveDC,targetSaveMod,spellDamageType,targetVunResImm,casterConditions + "/" + targetConditions, spellOnSave.title(), advantage_override, critImmune)
                         damageBreakdown.append("**" + str(damage) + spellDamageType.title() + "** (" + spellDamage + spellDamageType.title() + (" + " + str(flatDamage) if flatDamage > 0 else "") + ")")
 
                     if crit:
@@ -802,14 +804,23 @@ class ActionView(View):
         app_commands.Choice(name=cond, value=cond) for cond in ["Invisible", "Hidden", "Surprised", "Flanking", "Helped", "FaerieFire", "GuidingBolt", "Unaware", "Blinded", "Prone", "Poisoned", "Restrained", "Grappled", "Obscured", "Exhaustion", "Silenced", "Dodging"][:25]  # must be ≤25
         ]
 )
-async def apply(interaction: discord.Interaction, target: str, damage: int, condition: str = "", condition_duration: str = "99"):
-    apply_effects("none", target, damage, str(condition) + "." + condition_duration + "/")
+async def apply(interaction: discord.Interaction, target: str, damage: int, condition: str = "", condition_duration: str = "0"):
+    with open("Zed\characters.csv") as characterFile:
+        for line in characterFile.readlines():
+            fields = line.split(",") #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
+            if fields[0].lower().startswith(target.lower()):
+                target = fields[0] #Find the targets full name
+
+    
     outputMessage = "The target has "
     if int(damage) >= 0: outputMessage += "taken " + str(damage) + " damage."
     elif int(damage) < 0: outputMessage += "been healed for " + str(int(damage)*-1) + " damage."
     if condition != "":
         outputMessage += "\n" + str(condition) + " has also been applied"
-        if int(condition_duration) > 0: outputMessage += " for " + str(int(condition_duration)) + " rounds"
+        if int(condition_duration) > 0:
+            outputMessage += " for " + str(int(condition_duration)) + " rounds"
+            apply_effects("none", target, damage, " "+str(condition)+"."+condition_duration + "/")
+        else: apply_effects("none", target, damage, " "+str(condition)+"/")
         outputMessage += "."
     await interaction.response.send_message(outputMessage)
 
@@ -994,8 +1005,8 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
         
 
 #function to roll damage (accounting for crits, resistances, immunities and vulnerabilities)
-def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit: int, saveMod: int, damageType: str, targetVunResImm: str, Conditions: str, onSave: str, advantage_override: str):
-                #e.g. 1d6, 2d10... ^add to the hit roll. ^Add to damage dice. ^e.g. targets AC, Spell Save DC. ^attackerConditions/targetConditions
+def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit: int, saveMod: int, damageType: str, targetVunResImm: str, Conditions: str, onSave: str, advantage_override: str, critImmune: bool = False, rollToHitOverride: int = 0):
+    #example"  1d6, 2d10......,bonus to the hit roll, bonus damage,target AC/SpellDC, Stat Mod, type of damage, targets Vun/Res/Imm., attackerCon/targetCon, what happends on save, Adv override, If crits should be used, roll ot hit override.
     targetVunResImmParts = targetVunResImm.split("/")
     targetVulnerabilities = targetVunResImmParts[0]
     targetResistances = targetVunResImmParts[1]
@@ -1014,30 +1025,33 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
     if advantage_override == "disadvantage": Disadvantage = True
     elif advantage_override == "advantage": Advantage = True
     #Assigns the override value if given (default is advantage_override = "None")
-    rollToHit = roll_dice(1, 20, bonusToHit)
+    rollToHit = roll_dice(1, 20, bonusToHit + saveMod)
     #Takes the initial roll, we will now check on advantage and disadvantage to see if we roll again (and use that one instead)
     if Disadvantage and Advantage:
         #Normal roll (cancel out), this is needed otherwise disadvantage would have priority over advantage
         rollToHit = rollToHit
     elif Disadvantage:
         #Disadvantage, roll again and use it if it's lower
-        alternateRollToHit = roll_dice(1, 20, bonusToHit)
+        alternateRollToHit = roll_dice(1, 20, bonusToHit + saveMod)
         if alternateRollToHit < rollToHit: rollToHit = alternateRollToHit
     elif Advantage:
         #Advantage, roll again and use it if it's higher
-        alternateRollToHit = roll_dice(1, 20, bonusToHit)
+        alternateRollToHit = roll_dice(1, 20, bonusToHit + saveMod)
         if alternateRollToHit > rollToHit: rollToHit = alternateRollToHit
-                 
-    if rollToHit < contestToHit + saveMod:
+
+    if rollToHitOverride != 0: rollToHit = rollToHitOverride
+    print("Contenst:" + str(contestToHit) + ". Mod:" + str(saveMod) + ". BonusToHit: " + str(bonusToHit))
+    if rollToHit < contestToHit:
         #Attack missed the target
         saved = True
         #This will be used at the end
-    
+
+    print(str(critImmune))
     #Roll damage now
     diceCount = int(damage_dice.split("d")[0])
     diceSides = int(damage_dice.split("d")[1])
     damage = roll_dice(diceCount, diceSides, damageMod)
-    if rollToHit-bonusToHit == 20 and "crit" not in targetImmunities.lower():
+    if rollToHit-bonusToHit-saveMod == 20 and "crit" not in targetImmunities.lower() and not critImmune:
         #Natural 20 e.g. critical hit
         damage += roll_dice(diceCount, diceSides)
         crit = True
@@ -1160,19 +1174,21 @@ def apply_condition_effects(charactersFields: list[str], condition: str, PosNegO
 #Ideas to add:
     """
 Add Fuzzy Matching with difflib (so minor spelling mistakes don't void a command)
-Graphics of some kind to make it more user-friendly and exciting to use, somewhat used in encounter
+Graphics of some kind to make it more user-friendly and exciting to use, somewhat used in encounters
 DONE ~~Manual damage/healing & conditions for people who don't use the bot (like)~~
-DONE ~~Hiding, Helping ,Dodgeing~~
+DONE ~~Hiding, Helping, Dodgeing~~
 DONE ~~Allow a list of targets to be entered~~
-REJECTED **Give feedback on hp values on attack** Reason: Most DM's wont want to reveal their monster's HP bar to the players. instead, if the 'character' is not marked with M- (for monster), I will give their remaining hp on turn start.
+REJECTED **Give feedback on hp values on attack** Reason: Most DM's wont want to reveal their monster's HP bar to the players. Instead, if the 'character' is not marked with M- (for monster), I will give their remaining hp on turn start.
 DONE ~~Add the modifier to the dmg dice text~~
 Done ~~Target yourself~~
 Done ~~Abbility checks at will~~
 Done ~~Create a character~~
 DONE ~~Check and remove concentration on dmg effects (and give feedback to the user if it is) ~~
-Partly done: Expand spell list, allow for multible damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)
-^^^ There is a bug with this that makes the crits/hit rolls roll seperately and can give unclear/incorrect crit damage and 'did tis spell hit' text. Don't have time to fix before beta
+Partly done: Expand spell list, allow for multiple damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)
+^^^ There is a bug with this that makes the crits/hit rolls roll separately and can give unclear/incorrect crit damage and 'did this spell hit' text. Don't have time to fix before beta
 Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible
+DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especialy inaccurate when rolling more than one damage dice
+DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
     """
 
 # Start the bot
