@@ -44,7 +44,6 @@ client = DnDBot()
 async def on_ready():
     print("Bot is online as " + str(client.user))
     await client.change_presence(activity=discord.Game(name="DND probably"))
-    
 
 # Slash command: /cast
 @client.tree.command(name="cast", description="Cast a spell at a target as a caster.")
@@ -124,7 +123,6 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                 targetSavingThrows = fields[9]
                 targetVunResImm = fields[11]
                 targetConditions = fields[12]
-                
 
     with open("Zed\spells.csv") as spellFile:
         for line in spellFile.readlines():
@@ -190,7 +188,6 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                         for index, damageDiceForm in enumerate(splitDamages):
                             damageType = splitDamageTypes[index] if index < len(splitDamageTypes) else splitDamageTypes[-1]
                             partDamage, partDamageType, rollToHit, saved, partCrit = calc_damage(damageDiceForm.strip(), casterSpellAttBonus, 0, saveDC, targetSaveMod, damageType.strip(), targetVunResImm, casterConditions+"/"+targetConditions, spellOnSave.title(), advantage_override, critImmune, rollToHit)
-                            print(f'Dmg:{partDamage}, Type:{partDamageType}, Roll:{rollToHit}, Saved?:{saved}, Crit?:{partCrit}')
                             totalDamage += partDamage
                             damageBreakdown.append("**" + str(partDamage) + damageType.strip().title() + "** (" + damageDiceForm.strip() + ")")
                             print(str(partDamage) + damageType.strip().title() + " (" + damageDiceForm.strip() + ")")
@@ -316,7 +313,6 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 targetResistances = targetVunResImm[1]
                 targetImmunities = targetVunResImm[2]
                 targetConditions = fields[12]
-                
     
     with open("Zed\\attacks.csv") as attackFile:
         for line in attackFile.readlines():
@@ -810,7 +806,6 @@ async def apply(interaction: discord.Interaction, target: str, damage: int, cond
             fields = line.split(",") #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
             if fields[0].lower().startswith(target.lower()):
                 target = fields[0] #Find the targets full name
-
     
     outputMessage = "The target has "
     if int(damage) >= 0: outputMessage += "taken " + str(damage) + " damage."
@@ -905,7 +900,6 @@ async def create_character(interaction: discord.Interaction, name: str, characte
     with open("Zed\\charactersBK.csv", "a") as characterFileBK:
         characterFileBK.write(",".join(newRow) + "\n")
     await interaction.response.send_message(":pencil: " + name + " has been added the database, a reset is needed for it to show properly.")
-    
 
 # Slash command: /Reset
 @client.tree.command(name="reset", description="This command will reset the character database using the backup.")
@@ -922,6 +916,36 @@ async def reset(interaction: discord.Interaction):
         await interaction.response.send_message("✅ Character database has been reset to the backup.")
     except Exception as e:
         await interaction.response.send_message("❌ Failed to reset the database: " + e)
+
+# Slash command: /Roll
+@client.tree.command(name="roll", description="Roll any number of dice!")
+@app_commands.describe(
+    dice="the dice you wish to roll, seperated by '+'. e.g. 1d20+4d6",
+    modifier="any postitive (or negative) modifier you wish to add. e.g. +12 or -5"
+)
+async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
+    totalResult = 0
+    if "+" not in dice: diceArguments = 0
+    else: diceArguments = len(dice.split("+"))-1
+    for i in range(diceArguments+1):
+        diceRoll = dice.split("+")[i]
+        #Varables setup
+        diceCount = int(diceRoll.split("d")[0])
+        diceSides = int(diceRoll.split("d")[1])
+        diceResult = 0
+        if diceCount == 0 or diceSides == 0: outputMessage += "\nNothing, no dice were rolled here. "
+        else:
+            outputMessage += "\n" + str(diceSides) + "-sided dice; "
+            while diceCount > 0: #While the dice count and sides are positive
+                diceResult = random.randint(1, diceSides) #Roll a single dice
+                totalResult += diceResult #Add it to the total
+                diceCount -= 1 #Subtract that single dice from the count
+                if diceCount > 0: outputMessage += str(diceResult) + ", " #Add to outputMessage
+                elif diceCount == 0: outputMessage += str(diceResult) + ". " #Add to outputMessage
+    if modifier != 0:
+        outputMessage += "\nModifier: " + str(modifier) + ". "
+        totalResult += int(modifier)
+    await interaction.response.send_message(outputMessage + "\n**Total: " + str(int(totalResult)) + "**")
 
 # Slash command: /Roll_ability
 @client.tree.command(name="roll_ability", description="This command will reset the character database using the backup.")
@@ -1003,7 +1027,6 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
         abilityRoll = 10 + modifier
     return(abilityRoll)
         
-
 #function to roll damage (accounting for crits, resistances, immunities and vulnerabilities)
 def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit: int, saveMod: int, damageType: str, targetVunResImm: str, Conditions: str, onSave: str, advantage_override: str, critImmune: bool = False, rollToHitOverride: int = 0):
     #example"  1d6, 2d10......,bonus to the hit roll, bonus damage,target AC/SpellDC, Stat Mod, type of damage, targets Vun/Res/Imm., attackerCon/targetCon, what happends on save, Adv override, If crits should be used, roll ot hit override.
@@ -1040,7 +1063,6 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
         if alternateRollToHit > rollToHit: rollToHit = alternateRollToHit
 
     if rollToHitOverride != 0: rollToHit = rollToHitOverride
-    print("Contenst:" + str(contestToHit) + ". Mod:" + str(saveMod) + ". BonusToHit: " + str(bonusToHit))
     if rollToHit < contestToHit:
         #Attack missed the target
         saved = True
@@ -1174,7 +1196,7 @@ def apply_condition_effects(charactersFields: list[str], condition: str, PosNegO
 #Ideas to add:
     """
 Add Fuzzy Matching with difflib (so minor spelling mistakes don't void a command)
-Graphics of some kind to make it more user-friendly and exciting to use, somewhat used in encounters
+Graphics of some kind to make it more user-friendly and exciting to use, somewhat used in encounters buttons
 DONE ~~Manual damage/healing & conditions for people who don't use the bot (like)~~
 DONE ~~Hiding, Helping, Dodgeing~~
 DONE ~~Allow a list of targets to be entered~~
@@ -1187,9 +1209,9 @@ DONE ~~Check and remove concentration on dmg effects (and give feedback to the u
 Partly done: Expand spell list, allow for multiple damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)
 ^^^ There is a bug with this that makes the crits/hit rolls roll separately and can give unclear/incorrect crit damage and 'did this spell hit' text. Don't have time to fix before beta
 Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible
-DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especialy inaccurate when rolling more than one damage dice
+DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especially inaccurate when rolling more than one damage dice
 DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
+DONE ~~Add ability to roll dice independently of attacking/ability checks~~ AS REQUESTED
     """
-
 # Start the bot
 client.run("MY_TOKEN")
