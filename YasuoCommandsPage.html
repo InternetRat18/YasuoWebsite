@@ -69,6 +69,19 @@
 	border: 5px solid #0D1C5D;
 	}
 	h2 {
+	text-align: center;
+	font-size: 28px;
+	font-family: Arial, Helvetica, sans-serif;
+	padding: 10px; 
+	background-color: #de2a29;
+	color: black; 
+	max-width: 600px; 
+	margin-left: auto; 
+	margin-right: auto;
+	border-radius: 10px;
+	border: 5px solid #891215;
+	}
+	h3 {
 	text-align: justify;
 	text-align-last: center;
 	line-height: 1; 
@@ -77,7 +90,7 @@
 	text-shadow: 1px 1px 2px rgba(255, 204, 150, 0.3);
 	color: black; 	
 	background-color: #119DA4;
-	width: 480px;
+	max-width: 480px;
 	border-radius: 10px 10px 0px 0px;
 	border-bottom: 2px solid black;
 	padding: 10px;
@@ -165,113 +178,128 @@
 </nav>
 </div>
 
-<h2 style="margin-top: 20px">Yasuo's Commands</h2>
-<p>Below is a list of Yasuo's most common commands, each accompanied by a demonstration video. To play a video, hover over or tap on them.</p>
+<h3 style="max-width:720px; margin-top: 20px;">Yasuo's Commands</h3>
+<p style="max-width:700px;">Below is a list of Yasuo's most common commands, each accompanied by a demonstration video. To play a video, hover over or tap on them.</p>
 
 <div class="video-grid">
-<div class="videoBlock">
-<h2> /create_encounter </h2>
-<video class="hover-video" muted playsinline width="300" height="300">
-  <source src="Webpage/Videos/Demo-CreateEncounter.mp4" type="video/mp4"
-  onmouseover="this.loop = true; this.play();"
-  onmouseout="this.loop = false;">
-  Your browser does not support the video tag.
-</video>
-<p>
-Mainly used by the DM to set up a combat encounter. By specifying the characters (+monsters) involved, and optionally assigning their character owners. It initiates the encounter within the bot's framework, allowing for turn order, action, health and condition tracking to streamline combat.<br>
-</p>
+	<div class="videoBlock">
+	<h3 style="max-width:720px">Encounter Setup</h3>
+	<video class="hover-video" muted playsinline width="300" height="300" style="width:740px;">
+		<source src="Webpage/Videos/Demo-CreateEncounter.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p style="max-width:700px;">Mainly used by the DM to set up a combat encounter. By specifying the characters (+monsters) involved in initiative order, and assigning their character owners. It initiates the encounter within the bot's framework, allowing for turn order, action, health and condition tracking to streamline combat. Actions will be automaticly marked off, but may be done manually aswell.<br></p>
+	</div>
 </div>
 
-<div class="videoBlock">
-<h2> /apply </h2>
-<video class="hover-video" muted playsinline width="300" height="300">
-  <source src="Webpage/Videos/Demo-Apply.mp4" type="video/mp4"
-  onmouseover="this.loop = true; this.play();"
-  onmouseout="this.loop = false;">
-  Your browser does not support the video tag.
-</video>
-<p>
-Often used by players unwilling or unable to use Yasuo, this manually applies various effects to characters, such as damage, healing, or conditions. This also gives the DM direct control over character states within the bot's system, allowing for flexible adjustments during combat or other scenarios.<br>
-</p>
+<h2 style="max-width:400px">Attacks & Spells</h2>
+<div class="video-grid">
+	<div class="videoBlock">
+	<h3> /cast </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-Cast.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>This command allows a player to cast a spell. The user specifies the spell name, the target(s) of the spell, and the caster. The bot then handles all the necessary rolls and modifiers for casting that spell, simplifying the process for new players.<br></p>
+	</div>
+
+	<div class="videoBlock">
+	<h3> /attack </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-Attack.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>This command facilitates a character's attack. The user inputs the attacker, the weapon, and the target. It then calculates if the attack hits and the damage dealt, streamlining the attack resolution process for players.<br></p>
+	</div>
+
+	<div class="videoBlock">
+	<h3> /cast (list) </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-CastList.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>When casting spells, a list of targets may be entered for spells with multiple projectiles and AOE. All attacks take into account the vulnerability, resistance and immunities of their target. Additionally, critical hits are taken into account for ease of use, doubling the damage dice rolled.<br></p>
+	</div>
+
+	<div class="videoBlock">
+	<h3> secondary attacks </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-SneakAttackDuelWeild.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>An optional parameter for /attack, mainly for dual-wielding and sneak attacks for rogues. Damage from attacks are applied to the target and if a character reaches zero hp, death saves are then made. Three fails; you're removed from the turn order. Three successes; you're revived with 1hp.<br></p>
+	</div>
 </div>
 
-<div class="videoBlock">
-<h2> /cast </h2>
-<video class="hover-video" muted playsinline width="300" height="300">
-  <source src="Webpage/Videos/Demo-Cast.mp4" type="video/mp4"
-  onmouseover="this.loop = true; this.play();"
-  onmouseout="this.loop = false;">
-  Your browser does not support the video tag.
-</video>
-<p>
-This command allows a player to cast a spell. The user specifies the spell name, the target(s) of the spell, and the caster. The bot then handles all the necessary rolls and modifiers for casting that spell, simplifying the process for new players.<br>
-</p>
+<h2 style="max-width:400px">Actions and Dice Rolls</h2>
+<div class="video-grid">
+	<div class="videoBlock">
+	<h3> /action </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-ActionDodgeHide.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>Used to perform various combat actions other than attacks. As seen in the example, it can be used for actions like "Dodge" or "Hide", abstracting the specific rules for these actions and letting the bot manage their effects on the character and combat.<br></p>
+	</div>
+
+	<div class="videoBlock">
+	<h3> /roll_ability </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-RollAbility.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>Using this command allows your character to make an ability or stat check automatically, adding the correct modifier. Similar to other commands this can be used both in and out of Yasuo's combat encounter framework system.<br></p>
+	</div>
+
+	<div class="videoBlock">
+	<h3> /roll </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-RollDice.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>Roll any custom dice you wish using “XdY”, separated by a plus (e.g., 2d6+1d8), with an optional modifier. The bot will roll each set of dice, providing feedback on each individual roll and automatically applying the modifier to the total.<br></p>
+	</div>
 </div>
 
-<div class="videoBlock">
-<h2> /attack </h2>
-<video class="hover-video" muted playsinline width="300" height="300">
-  <source src="Webpage/Videos/Demo-Attack.mp4" type="video/mp4"
-  onmouseover="this.loop = true; this.play();"
-  onmouseout="this.loop = false;">
-  Your browser does not support the video tag.
-</video>
-<p>
-This command facilitates a character's attack. The user inputs the attacker, the weapon, and the target. It then calculates if the attack hits and the damage dealt, streamlining the attack resolution process for players.<br>
-</p>
-</div>
+<h2 style="max-width:400px">Game Controls</h2>
+<div class="video-grid">
+	<div class="videoBlock">
+	<h3> /apply </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-Apply.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>Often used by players unwilling or unable to use Yasuo, this manually applies effects to characters, such as damage, healing, or conditions. This allows for flexible adjustments during combat, giving the DM control over character states.<br></p>
+	</div>
 
-<div class="videoBlock">
-<h2> /cast (list) </h2>
-<video class="hover-video" muted playsinline width="300" height="300">
-  <source src="Webpage/Videos/Demo-CastList.mp4" type="video/mp4"
-  onmouseover="this.loop = true; this.play();"
-  onmouseout="this.loop = false;">
-  Your browser does not support the video tag.
-</video>
-<p>
-When casting spells, a list of targets may be entered for spells with multiple projectiles and AOE. All attacks take into account the vulnerability, resistance and immunities of their target. Additionally, critical hits are taken into account for ease of use, doubling the damage dice rolled.<br>
-</p>
-</div>
-
-<div class="videoBlock">
-<h2> /secondary attack </h2>
-<video class="hover-video" muted playsinline width="300" height="300">
-	  <source src="Webpage/Videos/Demo-SneakAttackDuelWeild.mp4" type="video/mp4"
-  onmouseover="this.loop = true; this.play();"
-  onmouseout="this.loop = false;">
-  Your browser does not support the video tag.
-</video>
-<p>
-An optional parameter for /attack, mainly for dual-wielding and sneak attacks for rogues. Damage from attacks are applied to the target and if a character reaches zero hp, death saves are then made. Three fails; you're removed from the turn order. Three successes; you're revived with 1hp.<br>
-</p>
-</div>
-
-<div class="videoBlock">
-<h2> /action </h2>
-<video class="hover-video" muted playsinline width="300" height="300">
-  <source src="Webpage/Videos/Demo-ActionDodgeHide.mp4" type="video/mp4"
-  onmouseover="this.loop = true; this.play();"
-  onmouseout="this.loop = false;">
-  Your browser does not support the video tag.
-</video>
-<p>
-Used to perform various combat actions other than attacks. As seen in the example, it can be used for actions like "Dodge" or "Hide", abstracting the specific rules for these actions and letting the bot manage their effects on the character and combat.<br>
-</p>
-</div>
-
-<div class="videoBlock">
-<h2> /remove & /reset </h2>
-<video class="hover-video" muted playsinline width="300" height="300">
-  <source src="Webpage/Videos/Demo-RemoveReset.mp4" type="video/mp4"
-  onmouseover="this.loop = true; this.play();"
-  onmouseout="this.loop = false;">
-  Your browser does not support the video tag.
-</video>
-<p>
-The /remove command is used to manually remove a condition from a character, giving control over ongoing effects. The /reset command provides a way to revert the character database to a previous backup state, effectively resetting the combat state.<br>
-</p>
-</div>
+	<div class="videoBlock">
+	<h3> /remove & /reset </h3>
+	<video class="hover-video" muted playsinline width="300" height="300">
+		<source src="Webpage/Videos/Demo-RemoveReset.mp4" type="video/mp4"
+		onmouseover="this.loop = true; this.play();"
+		onmouseout="this.loop = false;">
+		Your browser does not support the video tag.
+	</video>
+	<p>The /remove command is used to manually remove a condition from a character, giving control over ongoing effects. The /reset command provides a way to revert the character database to a previous backup state, effectively resetting the combat state<br></p>
+	</div>
 </div>
 
 <div class="Pictures">
