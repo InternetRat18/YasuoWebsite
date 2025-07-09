@@ -925,17 +925,19 @@ async def reset(interaction: discord.Interaction):
 )
 async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
     totalResult = 0
+    outputMessage = "Rolling: " + dice 
     if "+" not in dice: diceArguments = 0
     else: diceArguments = len(dice.split("+"))-1
     for i in range(diceArguments+1):
+        print(i)
         diceRoll = dice.split("+")[i]
         #Varables setup
         diceCount = int(diceRoll.split("d")[0])
         diceSides = int(diceRoll.split("d")[1])
         diceResult = 0
-        if diceCount == 0 or diceSides == 0: outputMessage += "\nNothing, no dice were rolled here. "
+        if diceCount == 0 or diceSides == 0: outputMessage += "\n- Nothing, no dice were rolled here. "
         else:
-            outputMessage += "\n" + str(diceSides) + "-sided dice; "
+            outputMessage += "\n- " + str(diceSides) + "-sided dice; "
             while diceCount > 0: #While the dice count and sides are positive
                 diceResult = random.randint(1, diceSides) #Roll a single dice
                 totalResult += diceResult #Add it to the total
@@ -943,7 +945,7 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
                 if diceCount > 0: outputMessage += str(diceResult) + ", " #Add to outputMessage
                 elif diceCount == 0: outputMessage += str(diceResult) + ". " #Add to outputMessage
     if modifier != 0:
-        outputMessage += "\nModifier: " + str(modifier) + ". "
+        outputMessage += "\n- Modifier: " + str(modifier) + ". "
         totalResult += int(modifier)
     await interaction.response.send_message(outputMessage + "\n**Total: " + str(int(totalResult)) + "**")
 
@@ -964,6 +966,12 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
     ]
 )
 async def roll_ability(interaction: discord.Interaction, roller: str, ability: str, advantage_override: str = "None"):
+    with open("Zed\characters.csv") as characterFile:
+        for line in characterFile.readlines():
+            fields = line.split(",") #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
+            if fields[0].lower().startswith(roller.lower()):
+                roller = fields[0] #Find the targets full name
+
     if ability in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
         #Regular stat check
         await interaction.response.send_message(":game_die: " + roller.title() + ", your  " + ability + " check rolled a: " + str(ability_check(roller, ability, "None", advantage_override)) + ".")
@@ -981,12 +989,14 @@ async def roll_ability(interaction: discord.Interaction, roller: str, ability: s
             releventStat = "WIS"
         elif ability in ["Deception", "Intimidation", "Performance", "Persuasion"]:
             releventStat = "CHA"
-        await interaction.response.send_message(":game_die: " + roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability, advantage_override)) + ".")
+        await interaction.response.send_message(roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability, advantage_override)) + ".")
+
 #function to Roll X sided dice, Y times
 def roll_dice(dice_count: int, dice_sides: int, modifier: int = 0) -> int:
     Total = modifier
     for i in range(dice_count):
         roll = random.randint(1, dice_sides)
+        print("Natural roll: " + str(roll))
         Total = Total + roll
     return(Total)
 
@@ -1196,7 +1206,7 @@ def apply_condition_effects(charactersFields: list[str], condition: str, PosNegO
 #Ideas to add:
     """
 Add Fuzzy Matching with difflib (so minor spelling mistakes don't void a command)
-Graphics of some kind to make it more user-friendly and exciting to use, somewhat used in encounters buttons
+Graphics of some kind to make it more user-friendly and exciting to use, somewhat used in encounters
 DONE ~~Manual damage/healing & conditions for people who don't use the bot (like)~~
 DONE ~~Hiding, Helping, Dodgeing~~
 DONE ~~Allow a list of targets to be entered~~
@@ -1209,9 +1219,8 @@ DONE ~~Check and remove concentration on dmg effects (and give feedback to the u
 Partly done: Expand spell list, allow for multiple damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)
 ^^^ There is a bug with this that makes the crits/hit rolls roll separately and can give unclear/incorrect crit damage and 'did this spell hit' text. Don't have time to fix before beta
 Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible
-DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especially inaccurate when rolling more than one damage dice
+DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especialy inaccurate when rolling more than one damage dice
 DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
-DONE ~~Add ability to roll dice independently of attacking/ability checks~~ AS REQUESTED
     """
 # Start the bot
 client.run("MY_TOKEN")
