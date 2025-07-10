@@ -1,3 +1,10 @@
+"""
+© 2025 Internetrat18. All Rights Reserved.
+
+This code is provided publicly for educational viewing and reference only.
+You may not copy, redistribute, modify, or use any part of this code for any purpose
+without explicit written permission from the author.
+"""
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -1166,7 +1173,7 @@ def apply_effects(attacker: str, target: str, damage: int, Conditions: str, Deat
             for cond in spellConcentratingConditions.split(" "):
                 cond = cond.strip()
                 if cond in fields[12].split(" "):
-                    #First remove its effects.
+                    #First, remove its effects.
                     fields = apply_condition_effects(fields, cond, "-")
                     #Now remove the condition
                     fields[12] = fields[12].replace(" " + cond, "")
@@ -1219,7 +1226,7 @@ DONE ~~Check and remove concentration on dmg effects (and give feedback to the u
 Partly done: Expand spell list, allow for multiple damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)
 ^^^ There is a bug with this that makes the crits/hit rolls roll separately and can give unclear/incorrect crit damage and 'did this spell hit' text. Don't have time to fix before beta
 Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible
-DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especialy inaccurate when rolling more than one damage dice
+DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especially inaccurate when rolling more than one damage dice
 DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
     """
 # Start the bot
