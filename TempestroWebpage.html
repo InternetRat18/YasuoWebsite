@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html charset="ANSI">
+
+<head>
+	<title>Tempestro Homepage</title>
+	<link rel="icon" href="Webpage/RedBlueD20Icon.png" type="image/png">
+</head>
+
+<body>
+
+<style>
+	/* Colour palette: 
+	1: #891215 - OU Crimson
+	2: #0D1C5D - Penn Blue
+	3: #FFC857 - Sunglow
+	4: #119DA4 - Dark Cyan
+	5: #EF959D - Salmon Pink
+	6: #976391 - Pomp and Power 
+	OLD COLOURS: G:#00FF80 R:#891215 B:#0d1c5d Y:#8B7500 O:#D37A11 */
+	body {
+	background-image: linear-gradient(to right, #0d1c5d, #000000, #891215);
+	margin: 0px;
+	}
+	img {
+	display: block;
+	vertical-align: bottom;
+	justify-content: center;
+	max-width: 300px;
+	max-height: 300px;
+	border-radius: 1000px;
+	border: 5px solid black;
+	}
+	.Pictures {
+	display: flex;
+	justify-content: center;
+	margin-left: auto; 
+	margin-right: auto;
+	margin-top: 40px;
+	margin-bottom: 40px; 
+	gap: 100px;
+	}
+	h1 {
+	text-align: center;
+	font-family: Arial, Helvetica, sans-serif;
+	padding: 20px; 
+	background-color: #3772FF;
+	color: black; 
+	max-width: 900px; 
+	margin-left: auto; 
+	margin-right: auto;
+	border-radius: 10px;
+	border: 5px solid #0D1C5D;
+	}
+	h2 {
+	text-align: center;
+	font-size: 28px;
+	font-family: Arial, Helvetica, sans-serif;
+	padding: 10px; 
+	background-color: #de2a29;
+	color: black; 
+	max-width: 600px; 
+	margin-left: auto; 
+	margin-right: auto;
+	border-radius: 10px;
+	border: 5px solid #891215;
+	}
+	h3 {
+	text-align: justify;
+	text-align-last: center;
+	line-height: 1; 
+	font-size: 24px;
+	font-family: Arial, Helvetica, sans-serif;
+	text-shadow: 1px 1px 2px rgba(255, 204, 150, 0.3);
+	color: black; 	
+	background-color: #119DA4;
+	max-width: 920px;
+	border-radius: 10px 10px 0px 0px;
+	border-bottom: 2px solid black;
+	padding: 10px;
+	margin-left: auto; 
+	margin-right: auto;
+	margin-bottom: 0;
+	}
+	p {
+	text-align: justify;
+	text-align-last: center;
+	line-height: 1.5; 
+	font-size: 20px;
+	font-family: Arial, Helvetica, sans-serif;
+	text-shadow: 1px 1px 2px rgba(204, 85, 0, 0.5);
+	color: black; 	
+	background-color: #FFC857;
+	max-width: 900px;
+	border-radius: 0px 0px 10px 10px;
+	padding: 20px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 0;
+	margin-bottom: 0;
+	}
+	a {
+	color: black;
+	font-size: 20px;
+	font-family: Arial, Helvetica, sans-serif;
+	font-weight: bold;
+	}
+	.navBar {
+	justify-content: center;
+	max-width: 910px;
+	background-color: #976391;
+	padding: 15px;
+	border-radius: 50px;
+	margin-left: auto;
+	margin-right: auto;
+	}
+	.navContent {
+	display: flex;
+	gap: 40px;
+	align-items: center;
+	justify-content: center;
+	}
+	.navLink {
+	display: inline-block;
+	text-align: center;
+	width: 225px;
+	background-color: #de2a29; 
+	padding: 25px;
+	transition: transform 0.3s ease;
+	border-radius: 50px;
+	border: 5px solid #891215;
+	margin: 0;
+	}
+	.navLink:hover { transform: scale(1.05); }
+	.fineprint { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+</style>
+
+<h1>Tempestro#3438</h1>
+
+<div class="navBar">
+<nav class="navContent">
+	<a href="TempestroCommandsPage.html" class="navLink">Commands</a>
+	<h1 class="navLink" style="font-size: 20px">Tempestro Homepage</h1>
+	<a href="https://github.com/InternetRat18/YasuoWebsite/blob/main/Zed.py" class="navLink">Source Code↗</a>
+</nav>
+</div>
+
+<div class="Pictures">
+	<img src="Webpage/BlueD20.png" alt="Blue D20">
+	<img src="Webpage/RedD20.png" alt="Red D20">
+</div>
+
+<h2>Player Guide</h2>
+<h3>About Tempestro</h3>
+<p>Tempestro is a custom-built Discord bot designed to streamline combat during Dungeons & Dragons (D&D) sessions, particularly for new players. Tempestro makes ordered combat, action tracking, attacking, casting spells, and special actions simple by using simple slash commands. To do this, it features automatic dice rolls, modifiers, damage calculations, condition tracking and more.<br><br>
+Even without extensive D&D knowledge, players benefit from the bot’s automation of common mechanics like advantage/disadvantage, hits/saves, crits and vulnerabilities. For Dungeon Masters, applying manual damage, healing and managing special conditions gives agency to include missing mechanics and players unwilling to use Tempestro.<br></p>
+<h3>Tempestro's Limitations</h3>
+<p>The one major combat element that Tempestro does not possess is a 'battle map'. Battlemaps provide players with an idea of their surroundings, enabling them to judge distances for attack range and movement. An implementation of this would be limiting and frustrating to set up and use as a player and DM. Instead, that responsibility lies on the players to determine who they can and can't attack, depending on their position within their world.<br><br>
+Another limitation is the number of content features Tempestro can take into account. It would be unrealistic to implement every feature and rule for every class within D&D; priorities will have to be made. Currently, my goal is to include as many features as I can within the official D&D Player’s Handbook and Dungeon Master's Guide. Other features would have to be manually calculated and inputted using commands such as /apply.<br></p>
+<h2>Development Process</h2>
+<h3>Design Philosophy</h3>
+<p>One of the most distinctive elements of the bot is its lack of strict restraints. Rather than restricting the player with rigid validations and vague error messages, the bot is designed to trust the player. When a command is entered incorrectly or imprecisely, the bot tries to interpret it anyway. Instead of simply failing, it offers guidance or partial results, giving the player the freedom to act without fear of breaking the system.<br><br>
+This approach makes Tempestro more like a helpful co-pilot than a referee. It supports the flow of combat rather than interrupting it and empowers users, especially players unfamiliar with automation tools. Instead, they are free to focus on decision-making rather than syntax or rule precision.<br></p>
+<h3>How Tempestro was Made</h3>
+<p>Tempestro was developed solo for personal use in D&D sessions. Tempestro uses Python 3.10 and Discord.py v2.4.0 and was created with lightweight, accessible tools such as Notepad and the Python IDLE shell. Simple CSV files were used for the database and a clear goal to make combat faster and more engaging for new and experienced players alike. Using the RAD development methodology, the project maintained an end-user-centered design and produced frequent prototypes.<br><br>
+From early versions, feedback was incorporated to refine commands, improve clarity, and add new features. Tempestro's development started on the 30th of May 2025, and it's currently in a stable state and will be continually and gradually improved and expanded over time.<br></p>
+<h2>Fine Print</h2>
+<div class="fineprint">
+	<div style="max-width: 460px; margin-top: 0px;">
+		<h3 class="policyh3" style="margin-top: 0px;">Privacy Policy</h3>
+		<p class="policyp">This bot does not collect or store any personal user data. It only processes messages and commands in real time to function within Discord servers and the only information processed is what users enter within Tempestro’s slash commands. We do not retain user information outside of Discord. Discord may collect and store data according to its Privacy Policy. If you have any questions, contact me at <strong>TempestroBot@outlook.com</strong>.</p>
+	</div>
+	<div style="max-width: 460px; margin-top: 0px;">
+		<h3 class="policyh3" style="margin-top: 0px;">Terms Of Service</h3>
+		<p class="policyp">Tempestro is a Discord bot designed to assist with Dungeons & Dragons (5e) combat by tracking turn order, actions, and calculating damage. Users interact with Tempestro through Discord’s slash commands, providing seamless integration within the Discord platform. The bot is provided “as-is” without warranties, and by using it, you agree to use it responsibly and acknowledge that the creators are not liable for any errors or issues arising from its use.</p>
+	</div>
+</div>
+
+<div class="navBar" style="max-width: 485px; margin: 50px auto;">
+<nav class="navContent">
+<a class="navLink" style="width: 400px;" href="https://discord.com/oauth3/authorize?client_id=1392690433624375466">Invite Tempestro into your discord server!</a>
+</nav>
+</div>
+
+</body>
+
+</html>
