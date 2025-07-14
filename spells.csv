@@ -69,7 +69,7 @@ Blade Ward,0,1Action,,,,,,ResistanceToBludgeoningPiercingSlashing.1
 Eldritch Blast,0,1Action,1d10,Force,AC,5/11/17,Miss,
 Friends,0,1Action,,,,,,AdvantageCharismaChecks.1
 Poison Spray,0,1Action,1d12,Poison,Con,5/11/17,Miss,
-Hex,1,BonusAction,,,,,,#Concentration -Strsave -Dexsave -Consave -Wissave -Intsave -Chasave
+Hex,1,BonusAction,,,,,#Concentration -Strsave -Dexsave -Consave -Wissave -Intsave -Chasave
 Arms of Hadar,1,1Action,2d6,Necrotic,Str,,,NoReactions.1
 Charm Person,1,1Action,,,Wis,,,,Charmed
 Hellish Rebuke,1,Reaction,2d10,Fire,Dex,,Half,
