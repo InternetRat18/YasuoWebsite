@@ -1,0 +1,195 @@
+SpellName,SpellLevel,CastTime,Damage,DamageType,Save,ExtraLvlDmg,OnFail,Conditions
+Acid Splash,0,1Action,1d6,Acid,Dex,,Miss,
+Chill Touch,0,1Action,1d8,Necrotic,AC,5/11/17,Miss,
+Dancing Lights,0,1Action,,,,,,#Concentration
+Firebolt,0,1Action,1d10,Fire,AC,5/11/17,Miss,
+Light,0,1Action,,,,,,#Concentration
+Mage Hand,0,1Action,,,,,,#Concentration
+Mending,0,1Minute,,,,,,
+Message,0,1Action,,,,,,
+Minor Illusion,0,1Action,,,,,,#Concentration
+Prestidigitation,0,1Action,,,,,,
+Ray of Frost,0,1Action,1d8,Cold,AC,5/11/17,Miss,-10Speed.1
+Shocking Grasp,0,1Action,1d8,Lightning,AC,5/11/17,Miss,NoReactions.1
+True Strike,0,1Action,,,,,,#Concentration Advantage.1
+Magic Missile,1,1Action,3d4+3,Force,,,,
+Shield,1,Reaction,,,,,,+5AC
+Burning Hands,1,1Action,3d6,Fire,Dex,1d6,Half,
+Detect Magic,1,1Action,,,,,,#Concentration
+Identify,1,1Minute,,,,,,
+Silent Image,1,1Action,,,,,,#Concentration
+Mage Armor,1,1Action,,,,,,
+Grease,1,1Action,,,Dex,,,Prone
+Witch Bolt,1,1Action,1d12,Lightning,AC,1d12,Miss,#Concentration
+Hunters Mark,1,BonusAction,,,,,,#Concentration 
+Scorching Ray,2,1Action,2d6,Fire,AC,1d6,Miss,
+Mirror Image,2,1Action,,,,,,
+Misty Step,2,BonusAction,,,,,,
+Shatter,2,1Action,3d8,Thunder,Con,1d8,Half,
+Invisibility,2,1Action,,,,,,#Concentration Invisible
+Levitate,2,1Action,,,Con,,,#Concentration Restrained
+Web,2,1Action,,,Dex,,,#Concentration Restrained
+Blur,2,1Action,,,,,,#Concentration DisadvantageToHit
+Flaming Sphere,2,1Action,2d6,Fire,Dex,1d6,Half,#Concentration
+Hold Person,2,1Action,,,Wis,,,Paralyzed #Concentration
+Counterspell,3,Reaction,,,,,,
+Dispel Magic,3,1Action,,,,,,
+Fireball,3,1Action,8d6,Fire,Dex,1d6,Half,
+Fly,3,1Action,,,,,,#Concentration Flying
+Haste,3,1Action,,,,,,#Concentration +2Ac.10 Advantage.10 +Dexsave.10 +Action.10
+Lightning Bolt,3,1Action,8d6,Lightning,Dex,1d6,Half,
+Major Image,3,1Action,,,,,,#Concentration
+Counterspell,3,Reaction,,,,,,
+Slow,3,1Action,,,Wis,,,#Concentration Halvedspeed.10 -2Ac.10 -Dexsave.10 Noreactions.10
+Hypnotic Pattern,3,1Action,,,Wis,,,#Concentration Charmed Incapacitated
+Sleet Storm,3,1Action,,,Dex,,,#Concentration Prone.1
+Ice Storm,4,1Action,2d8+4d6,Cold/Bludgeoning,Dex,,Half,
+Polymorph,4,1Action,,,,,,#Concentration
+Greater Invisibility,4,1Action,,,,,,#Concentration Invisible
+Dimension Door,4,1Action,,,,,,
+Blight,4,1Action,8d8,Necrotic,Con,,Half,
+Stoneskin,4,1Action,,,,,,#Concentration Resistance
+Wall of Fire,4,1Action,5d8,Fire,Dex,1d8,Half,#Concentration
+Banishment,4,1Action,,,Cha,,,Banished #Concentration
+Cloudkill,5,1Action,5d8,Poison,Con,1d8,Half,#Concentration
+Cone of Cold,5,1Action,8d8,Cold,Con,,Half,
+Hold Monster,5,1Action,,,Wis,,,Paralyzed #Concentration
+Telekinesis,5,1Action,,,,,,#Concentration Restrained
+Wall of Force,5,1Action,,,,,,#Concentration
+Animate Objects,5,1Action,,,,,,#Concentration
+Creation,5,1Minute,,,,,,#Concentration
+Disintegrate,6,1Action,10d6+40,Force,Dex,,Half,
+Globe of Invulnerability,6,1Action,,,,,,#Concentration
+Chain Lightning,6,1Action,10d8,Lightning,Dex,,Half,
+Mass Suggestion,6,1Action,,,Wis,,,Charmed #Concentration
+Eyebite,6,1Action,,,Wis,,,Asleep #Concentration
+True Seeing,6,1Action,,,,,,#Concentration
+
+Blade Ward,0,1Action,,,,,,ResistanceToBludgeoningPiercingSlashing.1
+Eldritch Blast,0,1Action,1d10,Force,AC,5/11/17,Miss,
+Friends,0,1Action,,,,,,AdvantageCharismaChecks.1
+Poison Spray,0,1Action,1d12,Poison,Con,5/11/17,Miss,
+Hex,1,BonusAction,,,,,,#Concentration -Strsave -Dexsave -Consave -Wissave -Intsave -Chasave
+Arms of Hadar,1,1Action,2d6,Necrotic,Str,,,NoReactions.1
+Charm Person,1,1Action,,,Wis,,,,Charmed
+Hellish Rebuke,1,Reaction,2d10,Fire,Dex,,Half,
+Expeditious Retreat,1,BonusAction,,,,,,#Concentration DashAsBonus
+Darkness,2,1Action,,,,,,#Concentration Blindness
+Suggestion,2,1Action,,,Wis,,,Charmed #Concentration
+Fear,3,1Action,,,Wis,,,Frightened #Concentration
+Hunger of Hadar,3,1Action,2d6,Cold,Dex,,Half,#Concentration
+Vampiric Touch,3,1Action,3d6,Necrotic,AC,1d6,Miss,#Concentration
+Contact Other Plane,5,1Minute,,,,,,#Concentration
+Dream,5,1Minute,,,,,,,
+Scrying,5,10Minutes,,,,,,#Concentration
+Circle of Death,6,1Action,8d6,Necrotic,Con,,Half,
+Flesh to Stone,6,1Action,,,Con,,,Petrified #Concentration
+
+Blade Ward,0,1Action,,,,,,ResistanceToBludgeoningPiercingSlashing.1
+Eldritch Blast,0,1Action,1d10,Force,AC,5/11/17,Miss,
+Friends,0,1Action,,,,,,AdvantageCharismaChecks.1
+Poison Spray,0,1Action,1d12,Poison,Con,5/11/17,Miss,
+Alarm,1,1Minute,,,,,,#Concentration
+Cure Wounds,1,1Action,1d8,,,,,
+Detect Poison and Disease,1,1Action,,,,,,#Concentration
+Ensnaring Strike,1,BonusAction,1d6,Piercing,Str,,Restrained #Concentration
+Fog Cloud,1,1Action,,,,,,#Concentration
+Goodberry,1,1Action,,,,,,Heal.1
+Hail of Thorns,1,BonusAction,1d10,Piercing,Dex,,Half,#Concentration
+Jump,1,1Action,,,,,,#Concentration JumpDistanceX3
+Longstrider,1,1Action,,,,,,Speed+10
+Animal Messenger,2,1Action,,,,,,#Concentration
+Barkskin,2,1Action,,,,,,#Concentration MinAC16
+Beast Sense,2,1Action,,,,,,#Concentration
+Cordon of Arrows,2,1Action,1d6,Piercing,AC,,Miss,
+Darkvision,2,1Action,,,,,,,
+Locate Animals or Plants,2,1Action,,,,,,,
+Locate Object,2,1Action,,,,,,#Concentration
+Pass without Trace,2,1Action,,,,,,#Concentration Stealth+10
+Spike Growth,2,1Action,2d4,Piercing,Dex,,Half,#Concentration
+Conjure Animals,3,1Action,,,,,,#Concentration
+Daylight,3,1Action,,,,,,,
+Lightning Arrow,3,BonusAction,4d8,Lightning,Dex,1d8,Half,#Concentration
+Nondetection,3,1Action,,,,,,,
+Plant Growth,3,1Action,,,,,,,
+Protection from Energy,3,1Action,,,,,,#Concentration Resistance
+Water Walk,3,1Action,,,,,,,
+Wind Wall,3,1Action,3d8,Bludgeoning,Str,,Half,#Concentration
+Conjure Woodland Beings,4,1Action,,,,,,#Concentration
+Freedom of Movement,4,1Action,,,,,,,
+Locate Creature,4,1Action,,,,,,#Concentration
+Stoneskin,4,1Action,,,,,,#Concentration Resistance
+Commune with Nature,5,1Minute,,,,,,,
+Conjure Volley,5,1Action,8d8,,Dex,,Half,
+Swift Quiver,5,BonusAction,,,,,,#Concentration
+Tree Stride,5,1Action,,,,,,#Concentration
+
+Bless,1,1Action,,,,,,#Concentration AttackBonus.1 SaveBonus.1
+Command,1,1Action,,,Wis,,,,Charmed
+Create or Destroy Water,1,1Action,,,,,,,
+Cure Wounds,1,1Action,1d8,,,,,
+Detect Evil and Good,1,1Action,,,,,,#Concentration
+Detect Poison and Disease,1,1Action,,,,,,#Concentration
+Guiding Bolt,1,1Action,4d6,Radiant,AC,1d6,Miss,AdvToHit.1
+Healing Word,1,BonusAction,1d4,,,,,
+Inflict Wounds,1,1Action,3d10,Necrotic,AC,1d10,Miss,
+Protection from Evil and Good,1,1Action,,,,,,#Concentration
+Purify Food and Drink,1,1Action,,,,,,,
+Sanctuary,1,BonusAction,,,,,,,
+Shield of Faith,1,BonusAction,,,,,,#Concentration +2AC
+Aid,2,1Action,,,,,,,
+Augury,2,1Minute,,,,,,,
+Calm Emotions,2,1Action,,,Cha,,,Charmed #Concentration
+Continual Flame,2,1Action,,,,,,,
+Enhance Ability,2,1Action,,,,,,#Concentration AdvAbilityChecks
+Find Traps,2,1Action,,,,,,,
+Gentle Repose,2,1Action,,,,,,,
+Lesser Restoration,2,1Action,,,,,,,
+Locate Object,2,1Action,,,,,,#Concentration
+Prayer of Healing,2,10Minutes,2d8,,,,,
+Protection from Poison,2,1Action,,,,,,,
+Spiritual Weapon,2,BonusAction,1d8,Force,AC,1d8,Miss,
+Warding Bond,2,1Action,,,,,,,
+Beacon of Hope,3,1Action,,,,,,#Concentration AdvWisSave
+Bestow Curse,3,1Action,,,Wis,,,Cursed #Concentration
+Clairvoyance,3,10Minutes,,,,,,#Concentration
+Create Food and Water,3,1Action,,,,,,,
+Daylight,3,1Action,,,,,,,
+Dispel Magic,3,1Action,,,,,,,
+Feign Death,3,1Action,,,,,,#Concentration
+Glyph of Warding,3,1Hour,,,,,,,
+Mass Healing Word,3,BonusAction,1d4,,,,,
+Meld into Stone,3,1Action,,,,,,,
+Remove Curse,3,1Action,,,,,,,
+Revivify,3,1Action,,,,,,,
+Sending,3,1Action,,,,,,,
+Speak with Dead,3,1Action,,,,,,,
+Spirit Guardians,3,1Action,3d8,Radiant,,1d8,Half,#Concentration
+Tongues,3,1Action,,,,,,,
+Water Walk,3,1Action,,,,,,,
+Banishment,4,1Action,,,Cha,,,Banished #Concentration
+Control Water,4,1Action,,,,,,#Concentration
+Death Ward,4,1Action,,,,,,,
+Divination,4,1Action,,,,,,,
+Freedom of Movement,4,1Action,,,,,,,
+Guardian of Faith,4,1Action,,Radiant,Dex,,Half,
+Locate Creature,4,1Action,,,,,,#Concentration
+Stone Shape,4,1Action,,,,,,,
+Commune,5,1Minute,,,,,,,
+Contagion,5,1Action,,,Con,,,Poisoned,
+Dispel Evil and Good,5,1Action,,,,,,#Concentration
+Flame Strike,5,1Action,4d6+4d6,Fire/Radiant,Dex,,Half,
+Geas,5,1Minute,,,Wis,,,Charmed #Concentration
+Greater Restoration,5,1Action,,,,,,,
+Hallow,5,24Hours,,,,,,,
+Mass Cure Wounds,5,1Action,3d8,,,,,
+Planar Binding,5,1Hour,,,,,,#Concentration
+Raise Dead,5,1Hour,,,,,,,
+Scrying,5,10Minutes,,,,,,#Concentration
+Blade Barrier,6,1Action,6d10,Slashing,Dex,,Half,#Concentration
+Create Undead,6,1Minute,,,,,,,
+Find the Path,6,1Minute,,,,,,#Concentration
+Forbiddance,6,10Minutes,,,,,,,
+Heal,6,1Action,,,,,,
+Heroes Feast,6,10Minutes,,,,,,,
+Word of Recall,6,1Action,,,,,,,
