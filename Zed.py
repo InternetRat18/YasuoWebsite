@@ -14,13 +14,15 @@ import random
 import time
 import math
 
-intents = discord.Intents.all()\
+intents = discord.Intents.default()
+intents.messages = True #only used for DMs
+intents.message_content = True #only used for DMs
           
 encounter_state = {
     "characterOrder": [],
     "characterOwners": [],
     "currentIndex": 0,
-    "actionsLeft": [] #[Action, BonusAction, Reaction] for each character
+    "actionsLeft": [] #[Action, BonusAction and Reaction for each character
 } #Used for all the information related to encounters. This can be called anywhere without the use of 'global encounter_state' (unless the whole variable is getting redefined)
 focusMessage = None
 
@@ -54,19 +56,14 @@ async def on_ready():
 
 # Slash command: /cast
 @client.tree.command(name="cast", description="Cast a spell at a target as a caster.")
-@app_commands.describe(
-    spell="The spell to cast (if multible beams write one target for each)",
-    target="The target of the spell (write a list for multible targets.)",
-    caster="The one casting the spell",
-    upcast_level="What level you wish to cast this spell (optional)",
-    advantage_override="Used for special circumstances, will override conditional (dis)advantage"
-)
+@app_commands.describe(spell="The spell to cast (if multible beams write one target for each)",
+                       target="The target of the spell (write a list for multible targets.)",
+                       caster="The one casting the spell",
+                       upcast_level="What level you wish to cast this spell (optional)",
+                       advantage_override="Used for special circumstances, will override conditional (dis)advantage")
 @app_commands.choices(
-    advantage_override=[
-        app_commands.Choice(name="Dis-advantage", value="disadvantage"),
-        app_commands.Choice(name="advantage", value="advantage")
-    ]
-)
+    advantage_override=[app_commands.Choice(name="Dis-advantage", value="disadvantage"),
+                        app_commands.Choice(name="advantage", value="advantage")])
 async def cast(interaction: discord.Interaction, spell: str, target: str, caster: str, upcast_level: int = 0, advantage_override: str = "none"):
     spell = spell.lower().strip()
     target = target.lower().strip()
@@ -256,29 +253,22 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
 
 # Slash command: /Attack
 @client.tree.command(name="attack", description="For all Non-magical attacks")
-@app_commands.describe(
-    attacker="The name of character who is attacking",
-    attack="The name of the attack/weapon you want to use",
-    target="The name of character who you want to attack",
-    secondary_attack="follow up attack, usually only used for sneak attacks, superiority dice attacks and duel weilding.",
-    weapon_mod="If your weapon is enchanted with a hit/damage modifier",
-    secondary_weapon_mod="If your secondary weapon is enchanted with a hit/damage modifier",
-    advantage_override="Used for special circumstances, where (dis)advantage is given outside of conditions* (*invisiility included*)."
-)
+@app_commands.describe(attacker="The name of character who is attacking",
+                       attack="The name of the attack/weapon you want to use",
+                       target="The name of character who you want to attack",
+                       secondary_attack="follow up attack, usually only used for sneak attacks, superiority dice attacks and duel weilding.",
+                       weapon_mod="If your weapon is enchanted with a hit/damage modifier",
+                       secondary_weapon_mod="If your secondary weapon is enchanted with a hit/damage modifier",
+                       advantage_override="Used for special circumstances, where (dis)advantage is given outside of conditions* (*invisiility included*).")
 @app_commands.choices(
-    weapon_mod=[
-        app_commands.Choice(name="+1", value="1"),
-        app_commands.Choice(name="+2", value="2"),
-        app_commands.Choice(name="+3", value="3")],
-    secondary_weapon_mod=[
-        app_commands.Choice(name="+1", value="1"),
-        app_commands.Choice(name="+2", value="2"),
-        app_commands.Choice(name="+3", value="3")],
-    advantage_override=[
-        app_commands.Choice(name="Dis-advantage", value="disadvantage"),
-        app_commands.Choice(name="advantage", value="advantage")
-    ]
-)
+    weapon_mod=[app_commands.Choice(name="+1", value="1"),
+                app_commands.Choice(name="+2", value="2"),
+                app_commands.Choice(name="+3", value="3")],
+    secondary_weapon_mod=[app_commands.Choice(name="+1", value="1"),
+                          app_commands.Choice(name="+2", value="2"),
+                          app_commands.Choice(name="+3", value="3")],
+    advantage_override=[app_commands.Choice(name="Dis-advantage", value="disadvantage"),
+                        app_commands.Choice(name="advantage", value="advantage")])
 async def attack(interaction: discord.Interaction, attacker: str, attack: str, target: str, secondary_attack: str = "none", weapon_mod: str = "0", secondary_weapon_mod: str = "0", advantage_override: str = "none"):
     attack = attack.lower().strip()
     secondary_attack = secondary_attack.lower().strip()
@@ -356,7 +346,6 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 if crit is False: damageDiceTotal += fields[1] + damageType.title() + "+" + str(bonusToDmg) + "+"
                 elif crit is True: damageDiceTotal += str(int(fields[1].split("d")[0])*2) + "d" + fields[1].split("d")[1] + damageType.title() + "+" + str(bonusToDmg) + "+"
                 #Count the total damage exclusively for writing back the (character) file
-
                 #Special effects:
                 if not saved:
                     #if the attack hit
@@ -376,7 +365,6 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 bonusToHit = int(secondary_weapon_mod)
                 bonusToDmg = 0
                 secondaryAttackDamageType = fields[2]
-
                 #Calculate te bonus to the hit roll
                 strMod = attackerStatMods.split("/")[0]
                 dexMod = attackerStatMods.split("/")[1]
@@ -534,16 +522,8 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
     
 # Slash command: /Action
 @client.tree.command(name="action", description="For actions other than attacks during combat.")
-@app_commands.describe(
-    character="The 'actionee' doing the acting.",
-    action="The Action you want to perform.",
-    target="Some actions require a target e.g. help or sometimes hide. Lists also work."
-)
-@app_commands.choices(
-    action=[
-        app_commands.Choice(name=action, value=action) for action in ["Hide", "Help", "Dodge"][:25]  # must be ≤25
-        ]
-)
+@app_commands.describe(character="The 'actionee' doing the acting.", action="The Action you want to perform.", target="Some actions require a target e.g. help or sometimes hide. Lists also work.")
+@app_commands.choices(action=[app_commands.Choice(name=action, value=action) for action in ["Hide", "Help", "Dodge"][:25]])
 async def action(interaction: discord.Interaction, character: str, action: str, target: str = ""):
     #first get characters (and targets) full name (for printing)
     with open("Zed\\characters.csv") as characterFile:
@@ -579,9 +559,7 @@ async def action(interaction: discord.Interaction, character: str, action: str, 
         
 # Slash command: /Search
 @client.tree.command(name="search", description="Retrive information from the back-end database.")
-@app_commands.describe(
-    file="The name of the data table"
-)
+@app_commands.describe(file="The name of the data table")
 async def search(interaction: discord.Interaction, file: str):
     if file != "": #If the file parameter is entered, open it and print the 1st value in each line/row
         path = "Zed\\" + file.strip().title() + ".csv"
@@ -593,10 +571,7 @@ async def search(interaction: discord.Interaction, file: str):
 
 # Slash command: /Create encounter
 @client.tree.command(name="create_encounter", description="To create an encounter, usually only used by the DM/GM")
-@app_commands.describe(
-    characters="The name of all characters (+monsters) you wish to be in the encounter, in turn order. Seperate each caracter by a comma(,).",
-    character_owners="The name(or @'s) of personel who are owners of the chracters. Have them in the same order as the characters entered."
-)
+@app_commands.describe(characters="The name of all characters (+monsters) you wish to be in the encounter, in turn order. Seperate each caracter by a comma(,).", character_owners="The name(or @'s) of personel who are owners of the chracters. Have them in the same order as the characters entered.")
 async def create_encounter(interaction: discord.Interaction, characters: str, character_owners: str = ""):
     characterList = characters.split(",")
     characterList = [s.lower() for s in characterList]
@@ -767,27 +742,21 @@ class ActionView(View):
     @discord.ui.button(label="Action", style=ButtonStyle.primary)
     async def action(self, interaction: Interaction, button: Button):
         await interaction.response.send_message("Action button pressed, it has been marked as used.", ephemeral=True)
-
         # Disable the button and update the view
         button.disabled = True
         await interaction.message.edit(view=self)
-
     @discord.ui.button(label="BonusAction", style=ButtonStyle.secondary)
     async def bonus_action(self, interaction: Interaction, button: Button):
         await interaction.response.send_message("Bonus action button pressed, it has been marked as used.", ephemeral=True)
-
         # Disable the button and update the view
         button.disabled = True
         await interaction.message.edit(view=self)
-
     @discord.ui.button(label="Reaction", style=ButtonStyle.success)
     async def reaction(self, interaction: Interaction, button: Button):
         await interaction.response.send_message("Reaction button pressed, it has been marked as used.", ephemeral=True)
-
         # Disable the button and update the view
         button.disabled = True
         await interaction.message.edit(view=self)
-
     @discord.ui.button(label="End Turn", style=ButtonStyle.danger)
     async def end_turn(self, interaction: Interaction, button: Button):
         await interaction.response.send_message("You have ended your turn.", ephemeral=True)
@@ -796,17 +765,8 @@ class ActionView(View):
 
 # Slash command: /Apply
 @client.tree.command(name="apply", description="Manually apply damage, healing, or conditions to a character (typicly used by DM).")
-@app_commands.describe(
-    target="The character you want to apply these effects to.",
-    damage="The damage to apply to the target(0 for nothing, and negative for healing).",
-    condition="Condition you wish to apply to the target",
-    condition_duration="how many turns should the condition last (leave blank for no duration)"
-)
-@app_commands.choices(
-    condition=[
-        app_commands.Choice(name=cond, value=cond) for cond in ["Invisible", "Hidden", "Surprised", "Flanking", "Helped", "FaerieFire", "GuidingBolt", "Unaware", "Blinded", "Prone", "Poisoned", "Restrained", "Grappled", "Obscured", "Exhaustion", "Silenced", "Dodging"][:25]  # must be ≤25
-        ]
-)
+@app_commands.describe(target="The character you want to apply these effects to.",damage="The damage to apply to the target(0 for nothing, and negative for healing).",condition="Condition you wish to apply to the target",condition_duration="how many turns should the condition last (leave blank for no duration)")
+@app_commands.choices(condition=[app_commands.Choice(name=cond, value=cond) for cond in ["Invisible", "Hidden", "Surprised", "Flanking", "Helped", "FaerieFire", "GuidingBolt", "Unaware", "Blinded", "Prone", "Poisoned", "Restrained", "Grappled", "Obscured", "Exhaustion", "Silenced", "Dodging"][:25]])
 async def apply(interaction: discord.Interaction, target: str, damage: int, condition: str = "", condition_duration: str = "0"):
     with open("Zed\characters.csv") as characterFile:
         for line in characterFile.readlines():
@@ -828,10 +788,7 @@ async def apply(interaction: discord.Interaction, target: str, damage: int, cond
 
 # Slash command: /Remove
 @client.tree.command(name="remove", description="Manually remove a condition from a character (typicly used by DM).")
-@app_commands.describe(
-    target="The character you want to remove the condition from.",
-    condition="Condition you wish to remove from the target, give none for a list of conditions on the target."
-)
+@app_commands.describe(target="The character you want to remove the condition from.",condition="Condition you wish to remove from the target, give none for a list of conditions on the target.")
 async def remove(interaction: discord.Interaction, target: str, condition: str = ""):
     outputMessage = ""
     with open("Zed\\characters.csv") as characterFile:
@@ -869,44 +826,163 @@ async def remove(interaction: discord.Interaction, target: str, condition: str =
             #This will truncate the file (remove its contents) and write the updated lines in.
     await interaction.response.send_message(condition.title() + " has been removed from " + target.title())
 
-# Slash command: /Create Character (&Monster)
-@client.tree.command(name="create_character", description="To create a character for players (&Monsters for DM's). Very sensitive, please follow instructions") 
-@app_commands.describe(#These discriptions are limited to 100characters and 9 paramaters
-    name="The name of character (or monster)",
-    character_class="The name of the class your character is (DM's: Monsters add 'M-' beforehand followed by the type of creature)",
-    character_level="The level of your character (DM's: Use this for the CR of your monster, in decimal value)",
-    stats="The numerical stats of your character in this format: 'STR/DEX/CON/INT/WIS/CHA'",
-    max_hp="The maximum hit points your character can have",
-    armor_class="The armor class of your character (with bonuses)",
-    proficiencies="A list of proficiencies, seperated by '/'. Name of weapon/skill. 'SM' = simple melee etc",
-    saving_throws="The list of saving throws you are proficient in, seperated by '/'",
-    vun_res_imm="A list of Vun/Res/Imm seperated by '/' and individual types seperated by space"
-)
-async def create_character(interaction: discord.Interaction, name: str, character_class: str, character_level: int, stats: str, max_hp: int, armor_class: int, proficiencies: str = "", saving_throws: str = "", vun_res_imm: str = ""):
-    #First, sanitise the user inputs
-    name = name.strip()
-    character_class = character_class.strip()
-    stats = stats.strip()
-    proficiencies = proficiencies.strip()
-    saving_throws = saving_throws.strip()
-    vun_res_imm = vun_res_imm.strip()
-    #Then derive Prof bonus from character level
-    profBonus = 2
-    if character_level >= 17: profBonus = 6
-    elif character_level >= 13: profBonus = 5
-    elif character_level >= 9: profBonus = 4
-    elif character_level >= 5: profBonus = 3
-    #Now generate stat modifiers based on stats
-    statMods = ""
-    for stat in stats.split("/"): #Rounding down
-        statMods += str(int((int(stat)-10)/2)) + "/"
-    statMods = statMods[:-1] #move the extra '/'
-    #We now should have all the info to write to the (backup) file. Next, sanitise user inputs
-    # Then format the Row and append it to the Bk file, then respond to the user
-    newRow = [name, character_class + " " + str(character_level), stats, statMods, str(max_hp) + "/0/" + str(max_hp), str(armor_class), "30", str(profBonus), proficiencies, saving_throws, "0/0", vun_res_imm, "None"]
-    with open("Zed\\charactersBK.csv", "a") as characterFileBK:
-        characterFileBK.write(",".join(newRow) + "\n")
-    await interaction.response.send_message(":pencil: " + name + " has been added the database, a reset is needed for it to show properly.")
+# Create character via DM (Direct Messages) structured conversation
+@client.tree.command(name="create_character", description="Create a character step-by-step for the encounter tracker.")
+async def create_character(interaction: discord.Interaction):
+    await interaction.response.send_message("✅ Check your DMs to begin character creation.", ephemeral=True) #Sends an immediate message
+    
+    user = interaction.user
+    dmChannel = await user.create_dm()
+    def check(m): #This filters messages so it must be from the inital user and in Tempestros DM's
+        return m.author == user and m.channel == dmChannel 
+    
+    try:
+        #Name
+        await dmChannel.send("What is your character's **name**?")
+        msgName = await client.wait_for('message', check=check, timeout=300)
+        name = msgName.content.strip()
+
+        #Class and Level
+        await dmChannel.send("What is your **class and level**? (e.g., Wizard 9)")
+        msgClassAndLevel = await client.wait_for('message', check=check, timeout=300)
+        ClassLevel = msgClassAndLevel.content.strip()
+
+        #Stats
+        await dmChannel.send("Enter your **stats** in STR/DEX/CON/INT/WIS/CHA order separated by '/'. (e.g., 10/15/14/12/13/8)")
+        msgStats = await client.wait_for('message', check=check, timeout=300)
+        rawStats = msgStats.content.strip()
+        statsList = rawStats.split('/')
+        if len(statsList) != 6:
+            await dmChannel.send("❌ Incorrect format. Please start over.")
+            return
+        modsList = [str((int(stat) - 10) // 2) for stat in statsList]
+        statMods = "/".join(modsList)
+        #HP
+        await dmChannel.send("What is your **max HP**?")
+        msgHp = await client.wait_for('message', check=check, timeout=300)
+        maxHp = msgHp.content.strip()
+
+        #AC
+        await dmChannel.send("What is your **armor class (AC)**, including bonuses?")
+        msgAc = await client.wait_for('message', check=check, timeout=300)
+        Ac = msgAc.content.strip()
+
+        #Speed
+        await dmChannel.send("What is your **speed** (in ft)?")
+        msgSpeed = await client.wait_for('message', check=check, timeout=300)
+        speed = msgSpeed.content.strip()
+
+        #Calculate proficiency bonus
+        try:
+            level = int(ClassLevel.split()[-1])
+            if level >= 17: profBonus = 6
+            elif level >= 13: profBonus = 5
+            elif level >= 9: profBonus = 4
+            elif level >= 5: profBonus = 3
+            else: profBonus = 2
+        except:
+            profBonus = 2
+
+        #Skill Proficiencies
+        skillsList = ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"]
+
+        skills_prompt = "\n".join([f"{i+1}. {skill}" for i, skill in enumerate(skillsList)])
+        await dmChannel.send(f"Select your **skill proficiencies** by replying with numbers separated by commas (e.g., 3,6,12).\n\n{skills_prompt}")
+        msgProficiencies = await client.wait_for('message', check=check, timeout=300)
+        profIndexs = [int(x.strip())-1 for x in msgProficiencies.content.strip().split(',') if x.strip().isdigit()]
+        profSelected = [skillsList[i] for i in profIndexs if 0 <= i < len(skillsList)]
+        skillProficiencies = "/".join(profSelected)
+
+        #Weapon Proficiencies
+        await dmChannel.send("Select your **weapon proficiencies** by replying with numbers separated by commas, adding any individual weapons at the end.\n1. Simple Melee\n2. Simple Ranged\n3. Martial Melee\n4. Martial Ranged\nExample: 1,3,Longsword,Shortbow")
+        msgWeapons = await client.wait_for('message', check=check, timeout=300)
+        weaponProficiencies = msgWeapons.content.strip()
+        weaponProficiencies = weaponProficiencies.replace("1", "SM")
+        weaponProficiencies = weaponProficiencies.replace("2", "SR")
+        weaponProficiencies = weaponProficiencies.replace("3", "MM")
+        weaponProficiencies = weaponProficiencies.replace("4", "MR")
+        weaponProficiencies = weaponProficiencies.split(",")
+
+        proficiencies = "/".join([skillProficiencies] + weaponProficiencies)
+
+        #Saving Throws
+        await dmChannel.send("List your **saving throws you are proficient in**, separated by commas. (e.g., CON,WIS)")
+        msgSaved = await client.wait_for('message', check=check, timeout=300)
+        savingThrows = msgSaved.content.strip()
+        savingThrows = savingThrows.replace(",", "/")
+
+        #Vun/Res/Imm
+        await dmChannel.send("List your **Vulnerabilities/Resistances/Immunities** individualy seperated by space, each category separated by '/' (or enter None/None/None)")
+        msgVunResImm = await client.wait_for('message', check=check, timeout=300)
+        VunResImm = msgVunResImm.content.strip()
+
+        #Confirmation preview
+        character_row = f"{name},{ClassLevel},{rawStats},{statMods},{maxHp}/0/{maxHp},{Ac},{speed},{profBonus},{proficiencies},{savingThrows},0/0,{VunResImm},None"
+
+        view = ConfirmCancelView()
+        await dmChannel.send(f":pencil: Here is your generated character line:\n```{character_row}```\nIf you are unsure whether this character is correct, you can run a test attack before your encounter (making sure to /reset afterwards).\nPlease confirm or cancel to complete your character creation:", view=view)
+        await view.wait()
+
+        #If confirmed, write it in both files (saves user having to /reset for character to work).
+        if view.value:
+            with open("Zed/charactersBK.csv", "a") as f:
+                f.write(character_row + "\n")
+            with open("Zed/characters.csv", "a") as f:
+                f.write(character_row + "\n")
+            await dmChannel.send(f"✅ {name} has been saved successfully!")
+        else:
+            await dmChannel.send("❌ Character creation cancelled.")
+
+    except asyncio.TimeoutError:
+        await dmChannel.send(":hourglass: Timeout reached. Please run the command again if you wish to create your character.")
+
+class ConfirmCancelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=300)
+        self.value = None
+
+    @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.green)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.value = True
+        button.disabled = True
+        await interaction.message.edit(view=self)
+        self.stop()
+
+    @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.value = False
+        button.disabled = True
+        await interaction.message.edit(view=self)
+        self.stop()
+
+@client.tree.command(name="remove_character", description="Remove a character from the database by name.")
+@discord.app_commands.describe(character_name="The name of the character to remove.")
+async def remove_character(interaction: discord.Interaction, character_name: str):
+    try:
+        with open("Zed/charactersBK.csv", "r") as f:
+            lines = f.readlines()
+        with open("Zed/charactersBK.csv", "w") as f:
+            removed = False
+            for line in lines:
+                if not line.lower().startswith(character_name.lower() + ","):
+                    f.write(line)
+                else:
+                    removed = True
+                    break
+        if removed:
+            await interaction.response.send_message(f"✅ Successfully removed character: {character_name}. \nNote: This character is still active in your session. Please run */reset* to apply changes immediately")
+        else:
+            await interaction.response.send_message(f"❌ Character '{character_name}' not found in the database.")
+    except Exception as e:
+        await interaction.response.send_message(f"❌ An error occurred while attempting to remove the character: {e}")
+
+class CharacterProficienciesView(View):
+    def __init__(self):
+        super().__init__(timeout=600) #Max timeout time is 15mins (900s)
+
+    @discord.ui.button(label="Submit", style=ButtonStyle.primary)
+    async def action(self, interaction: Interaction, button: Button):
+        await interaction.response.send_message("Proficiencies submitted.", ephemeral=True)
 
 # Slash command: /Reset
 @client.tree.command(name="reset", description="This command will reset the character database using the backup.")
@@ -926,10 +1002,7 @@ async def reset(interaction: discord.Interaction):
 
 # Slash command: /Roll
 @client.tree.command(name="roll", description="Roll any number of dice!")
-@app_commands.describe(
-    dice="the dice you wish to roll, seperated by '+'. e.g. 1d20+4d6",
-    modifier="any postitive (or negative) modifier you wish to add. e.g. +12 or -5"
-)
+@app_commands.describe(dice="the dice you wish to roll, seperated by '+'. e.g. 1d20+4d6", modifier="any postitive (or negative) modifier you wish to add. e.g. +12 or -5")
 async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
     totalResult = 0
     outputMessage = "Rolling: " + dice 
@@ -958,20 +1031,11 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
 
 # Slash command: /Roll_ability
 @client.tree.command(name="roll_ability", description="This command will reset the character database using the backup.")
-@app_commands.describe(
-    roller="Character that is making the ability check.",
-    ability="The ability you want to check, weather it be a skill or stat.",
-    advantage_override="Give (dis)advantage?"
-)
+@app_commands.describe(roller="Character that is making the ability check.", ability="The ability you want to check, weather it be a skill or stat.", advantage_override="Give (dis)advantage?")
 @app_commands.choices(
-    advantage_override=[
-        app_commands.Choice(name="Dis-advantage", value="disadvantage"),
-        app_commands.Choice(name="advantage", value="advantage")
-    ],
-    ability=[
-        app_commands.Choice(name=cond, value=cond) for cond in ["STR", "DEX", "CON", "INT", "WIS", "CHA", "Athletics", "Acrobatics", "Sleight of Hand", "Stealth", "Arcana", "History", "Investigation", "Nature", "Religion", "Animal Handling", "Insight", "Medicine", "Perception", "Survival", "Deception", "Intimidation", "Performance", "Persuasion"][:25]  # must be ≤25
-    ]
-)
+    advantage_override=[app_commands.Choice(name="Dis-advantage", value="disadvantage"),
+                        app_commands.Choice(name="advantage", value="advantage")],
+    ability=[app_commands.Choice(name=cond, value=cond) for cond in ["STR", "DEX", "CON", "INT", "WIS", "CHA", "Athletics", "Acrobatics", "Sleight of Hand", "Stealth", "Arcana", "History", "Investigation", "Nature", "Religion", "Animal Handling", "Insight", "Medicine", "Perception", "Survival", "Deception", "Intimidation", "Performance", "Persuasion"][:25]])
 async def roll_ability(interaction: discord.Interaction, roller: str, ability: str, advantage_override: str = "None"):
     with open("Zed\characters.csv") as characterFile:
         for line in characterFile.readlines():
@@ -1080,6 +1144,7 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
         if alternateRollToHit > rollToHit: rollToHit = alternateRollToHit
 
     if rollToHitOverride != 0: rollToHit = rollToHitOverride
+    rollToHit = max(rollToHit, 1)
     if rollToHit < contestToHit:
         #Attack missed the target
         saved = True
@@ -1094,6 +1159,7 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
         #Natural 20 e.g. critical hit
         damage += roll_dice(diceCount, diceSides)
         crit = True
+        saved = False
         #Roll the dice twice
     #Take into account the damage type now
     if damageType in targetImmunities: damage = 0
@@ -1228,6 +1294,7 @@ Partly done: Expand spell list, allow for multiple damage dice sets/damage types
 Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible
 DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especially inaccurate when rolling more than one damage dice
 DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
+DONE ~~Make character creation easier~~
     """
 # Start the bot
 client.run("MY_TOKEN")
