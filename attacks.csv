@@ -39,5 +39,5 @@ Longbow,1d8,piercing,MR,
 Net,,,MR Special,
 Grapple,,,Light Special,
 Sneak attack,,,SecondaryAttack Special,
-Bite,3d10,piercing,SM
-Claw,2d6,slashing,SM
+Bite,3d10,piercing,SM,
+Claw,2d6,slashing,SM,
