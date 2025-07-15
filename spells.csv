@@ -80,7 +80,7 @@ Fear,3,1Action,,,Wis,,,Frightened #Concentration
 Hunger of Hadar,3,1Action,2d6,Cold,Dex,,Half,#Concentration
 Vampiric Touch,3,1Action,3d6,Necrotic,AC,1d6,Miss,#Concentration
 Contact Other Plane,5,1Minute,,,,,,#Concentration
-Dream,5,1Minute,,,,,,,
+Dream,5,1Minute,,,,,,
 Scrying,5,10Minutes,,,,,,#Concentration
 Circle of Death,6,1Action,8d6,Necrotic,Con,,Half,
 Flesh to Stone,6,1Action,,,Con,,,Petrified #Concentration
@@ -92,7 +92,7 @@ Poison Spray,0,1Action,1d12,Poison,Con,5/11/17,Miss,
 Alarm,1,1Minute,,,,,,#Concentration
 Cure Wounds,1,1Action,1d8,,,,,
 Detect Poison and Disease,1,1Action,,,,,,#Concentration
-Ensnaring Strike,1,BonusAction,1d6,Piercing,Str,Miss,Restrained #Concentration
+Ensnaring Strike,1,BonusAction,1d6,Piercing,Str,,Miss,Restrained #Concentration
 Fog Cloud,1,1Action,,,,,,#Concentration
 Goodberry,1,1Action,,,,,,Heal.1
 Hail of Thorns,1,BonusAction,1d10,Piercing,Dex,,Half,#Concentration
@@ -171,25 +171,25 @@ Banishment,4,1Action,,,Cha,,,Banished #Concentration
 Control Water,4,1Action,,,,,,#Concentration
 Death Ward,4,1Action,,,,,,
 Divination,4,1Action,,,,,,
-Freedom of Movement,4,1Action,,,,,,,
+Freedom of Movement,4,1Action,,,,,,
 Guardian of Faith,4,1Action,,Radiant,Dex,,Half,
 Locate Creature,4,1Action,,,,,,#Concentration
-Stone Shape,4,1Action,,,,,,,
-Commune,5,1Minute,,,,,,,
-Contagion,5,1Action,,,Con,,,Poisoned,
+Stone Shape,4,1Action,,,,,,
+Commune,5,1Minute,,,,,,
+Contagion,5,1Action,,,Con,,,Poisoned
 Dispel Evil and Good,5,1Action,,,,,,#Concentration
 Flame Strike,5,1Action,4d6+4d6,Fire/Radiant,Dex,,Half,
 Geas,5,1Minute,,,Wis,,,Charmed #Concentration
-Greater Restoration,5,1Action,,,,,,,
-Hallow,5,24Hours,,,,,,,
+Greater Restoration,5,1Action,,,,,,
+Hallow,5,24Hours,,,,,,
 Mass Cure Wounds,5,1Action,3d8,,,,,
 Planar Binding,5,1Hour,,,,,,#Concentration
-Raise Dead,5,1Hour,,,,,,,
+Raise Dead,5,1Hour,,,,,,
 Scrying,5,10Minutes,,,,,,#Concentration
 Blade Barrier,6,1Action,6d10,Slashing,Dex,,Half,#Concentration
-Create Undead,6,1Minute,,,,,,,
+Create Undead,6,1Minute,,,,,,
 Find the Path,6,1Minute,,,,,,#Concentration
-Forbiddance,6,10Minutes,,,,,,,
-Heal,6,1Action,,,,,,
-Heroes Feast,6,10Minutes,,,,,,,
-Word of Recall,6,1Action,,,,,,,
+Forbiddance,6,10Minutes,,,,,,
+Heal,6,1Action,,,,,
+Heroes Feast,6,10Minutes,,,,,,
+Word of Recall,6,1Action,,,,,,
