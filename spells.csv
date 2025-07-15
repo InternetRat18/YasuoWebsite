@@ -71,7 +71,7 @@ Friends,0,1Action,,,,,,AdvantageCharismaChecks.1
 Poison Spray,0,1Action,1d12,Poison,Con,5/11/17,Miss,
 Hex,1,BonusAction,,,,,,#Concentration -Strsave -Dexsave -Consave -Wissave -Intsave -Chasave
 Arms of Hadar,1,1Action,2d6,Necrotic,Str,,,NoReactions.1
-Charm Person,1,1Action,,,Wis,,,,Charmed
+Charm Person,1,1Action,,,Wis,,,Charmed
 Hellish Rebuke,1,Reaction,2d10,Fire,Dex,,Half,
 Expeditious Retreat,1,BonusAction,,,,,,#Concentration DashAsBonus
 Darkness,2,1Action,,,,,,#Concentration Blindness
