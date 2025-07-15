@@ -190,6 +190,6 @@ Blade Barrier,6,1Action,6d10,Slashing,Dex,,Half,#Concentration
 Create Undead,6,1Minute,,,,,,
 Find the Path,6,1Minute,,,,,,#Concentration
 Forbiddance,6,10Minutes,,,,,,
-Heal,6,1Action,,,,,
+Heal,6,1Action,,,,,,
 Heroes Feast,6,10Minutes,,,,,,
 Word of Recall,6,1Action,,,,,,
