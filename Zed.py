@@ -1121,11 +1121,15 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
     attackerConditions = Conditions.split("/")[0]
     targetConditions = Conditions.split("/")[1]
     #Find if the attack(er) has advantage/disadvantage now
-    advantageConditions = ["Invisible", "Hidden", "Surprised", "Flanking", "Helped", "FaerieFire", "GuidingBolt", "Unaware", "Advantage"]
-    disadvantageConditions = ["Blinded", "Prone", "Poisoned", "Restrained", "Grappled", "Obscured", "Exhaustion", "Silenced", "Dodging", "Disadvantage"]
+    attackerAdvantageConditons = ["Advantage", "Helped", "Flanking", "Hidden", "Invisible"] #Attacker has advantage if they have these
+    attackerDisadvantageConditions = ["Blinded", "Frightened", "Poisoned", "Restrained", "Exhaustion3", "Disadvantage", "Prone"] #Attacker has disadvantage if they have these
+    targetAdvantageCondtions = ["GuidingBolt", "Flanking", "Unaware", "Blinded", "Paralyzed", "Petrified", "Prone", "Restrained", "Stunned", "Unconscious", "FaerieFire", "Surprised"] #Attacker has advantage if the target has these
+    targetDisadvantageConditions = ["HeavilyObscured", "Invisible", "Dodging"] #Attacker has disadvantage if te target has these
     #Defining conditions that grant advantage/impose disadvantage on the attacker
-    Disadvantage = any(cond in disadvantageConditions for cond in attackerConditions) #Boolean
-    Advantage = any(cond in advantageConditions for cond in targetConditions)         #Boolean
+    Advantage = any(cond in attackerAdvantageConditons for cond in attackerConditions) #Boolean
+    if not Advantage: Advantage = any(cond in targetAdvantageCondtions for cond in targetConditions) #If advantage is not already true, ceck the targets conditions
+    Disadvantage = any(cond in attackerDisadvantageConditions for cond in attackerConditions) #Boolean
+    if not Disadvantage: Disadvantage = any(cond in targetDisadvantageConditions for cond in targetConditions) #If disadvantage is not already true, ceck the targets conditions
     if advantage_override == "disadvantage": Disadvantage = True
     elif advantage_override == "advantage": Advantage = True
     #Assigns the override value if given (default is advantage_override = "None")
@@ -1295,6 +1299,7 @@ Note: Scope, No combat map, meaning no range. + As little things as hardcoded as
 DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especially inaccurate when rolling more than one damage dice
 DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
 DONE ~~Make character creation easier~~
+Add 'effects' for spells that apply effects to the character but don't have a duration the same as conditions
     """
 # Start the bot
 client.run("MY_TOKEN")
