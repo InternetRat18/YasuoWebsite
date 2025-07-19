@@ -168,6 +168,9 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
 
                 critImmune = False
                 if spellSave == "ac":
+                    for condition in targetConditions.split(" "):
+                        if condition.startswith("minac"):
+                            targetAC = int(condition[5:]) #For spells like barkskin that set a minimum AC via a condition
                     saveDC = targetAC
                     saveType = "Ac"
                 elif spellSave in ["str", "dex", "con", "int", "wis", "cha"]:
@@ -292,7 +295,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 attacker = fields[0]
                 #Attacker line
                 attackerClass = fields[1].split(" ")[0]
-                attackerLevel = int(fields[1].split(" ")[1])
+                attackerLevel = float(fields[1].split(" ")[1])
                 attackerStatMods = fields[3]
                 attackerProfBonus = int(fields[7])
                 attackerProficiencies = fields[8]
@@ -340,6 +343,13 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                 if fields[3].split(" ")[0] in attackerProficiencies.split("/") or fields[0] in attackerProficiencies.split("/"):
                     #If the attacker is proficient in the attack/weapon
                     bonusToHit += attackerProfBonus
+                    
+                for condition in attackerConditions.split(" "):
+                    if condition.startswith("bless"): #Attacker has the bless spell active
+                        bonusToHit += roll_dice(1, 4, 0) #Add an extra 1d4 to the attack roll
+                        print("Bless activated ^")
+                        extraOutput += "\n:book: Special effect 'Bless' triggered! (+1d4 to attack roll)"
+                        remove_logic(attacker, "Bless")
                 
                 damage, damageType, rollToHit, saved, crit = calc_damage(fields[1], bonusToHit, bonusToDmg, targetAC, 0, damageType, targetVunResImm, attackerConditions+"/"+targetConditions, "Miss", advantage_override)
                 damageTotal += damage
@@ -355,7 +365,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                         damage += markDamage
                         damageTotal += markDamage
                         damageDiceTotal += "1d6+"
-                        extraOutput += "\n:book: Special effect 'Hunters Mark' triggered!"
+                        extraOutput += "\n:book: Special effect 'Hunters Mark' triggered! (+1d6 to attack damage)"
                 
             if fields[0].startswith(secondary_attack) is True and "special" not in fields[3]:
                 secondary_attack = fields[0]
@@ -1009,7 +1019,6 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
     if "+" not in dice: diceArguments = 0
     else: diceArguments = len(dice.split("+"))-1
     for i in range(diceArguments+1):
-        print(i)
         diceRoll = dice.split("+")[i]
         #Varables setup
         diceCount = int(diceRoll.split("d")[0])
@@ -1083,6 +1092,7 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
                 rollerProfBonus = int(fields[7])
                 rollerProficiencies = fields[8].split("/") #List
                 rollerSavingThrows = fields[9].split("/") #List
+                rollerConditions = fields[12].split(" ") #List
 
     statIndex = ["STR","DEX","CON","INT","WIS","CHA"].index(abilityStat.upper())
     modifier = int(rollerStatMods[statIndex])
@@ -1093,6 +1103,9 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
         if ability == abilityCheck+"X2":
             #If expert, add prof bonus twice
             modifier += rollerProfBonus + rollerProfBonus
+    for condition in rollerConditions:
+        if condition.startswith(abilityCheck):
+            modifier += int(condition.replace(abilityCheck, " ")) #If a condition is present in format: [Ability][Modifier], and that ability is rolled, add tat modifer present to the roll.
     abilityRoll = roll_dice(1, 20, modifier)
     
     Advantage = False
@@ -1122,7 +1135,7 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
     targetConditions = Conditions.split("/")[1]
     #Find if the attack(er) has advantage/disadvantage now
     attackerAdvantageConditons = ["Advantage", "Helped", "Flanking", "Hidden", "Invisible"] #Attacker has advantage if they have these
-    attackerDisadvantageConditions = ["Blinded", "Frightened", "Poisoned", "Restrained", "Exhaustion3", "Disadvantage", "Prone"] #Attacker has disadvantage if they have these
+    attackerDisadvantageConditions = ["Blinded", "Frightened", "Poisoned", "Restrained", "Exhaustion3", "Disadvantage", "Prone", "Cursed"] #Attacker has disadvantage if they have these
     targetAdvantageCondtions = ["GuidingBolt", "Flanking", "Unaware", "Blinded", "Paralyzed", "Petrified", "Prone", "Restrained", "Stunned", "Unconscious", "FaerieFire", "Surprised"] #Attacker has advantage if the target has these
     targetDisadvantageConditions = ["HeavilyObscured", "Invisible", "Dodging"] #Attacker has disadvantage if te target has these
     #Defining conditions that grant advantage/impose disadvantage on the attacker
@@ -1154,7 +1167,6 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
         saved = True
         #This will be used at the end
 
-    print(str(critImmune))
     #Roll damage now
     diceCount = int(damage_dice.split("d")[0])
     diceSides = int(damage_dice.split("d")[1])
