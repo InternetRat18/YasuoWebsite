@@ -123,7 +123,7 @@ Conjure Volley,5,1Action,8d8,,Dex,,Half,
 Swift Quiver,5,BonusAction,,,,,,#Concentration
 Tree Stride,5,1Action,,,,,,#Concentration
 
-Bless,1,1Action,,,,,,#Concentration +1d4AttackBonus.1 +1d4SaveBonus.1
+Bless,1,1Action,,,,,,#Concentration Bless.10
 Command,1,1Action,,,Wis,,,Charmed
 Create or Destroy Water,1,1Action,,,,,,
 Cure Wounds,1,1Action,1d8,,,,,
