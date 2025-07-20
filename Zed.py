@@ -115,7 +115,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                 casterProfBonus = int(fields[7])
                 casterSpellAttBonus = casterProfBonus + casterSpellAbilityMod
                 casterSpellSaveDC = 8 + casterProfBonus + casterSpellAbilityMod
-                casterLevel = int(fields[1].split(" ")[1])
+                casterLevel = float(fields[1].split(" ")[1])
                 casterConditions = fields[12]
                 
             if fields[0].startswith(target):
@@ -162,90 +162,91 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                 if "concentration" in casterConditions.lower() and "concentration" in fields[8].lower():
                     await interaction.response.send_message(":exclamation: You are already concentrating on a spell. This cast has been Canceled.")
                     return()
+                break #So it wont continue searching the file, executing every spell that starts with the entered spell
                 
-                targetSaveMod = 0 #By defult
-                saveType = "Unknown"
-                saveDC = 0 #By defult it will always hit (for spells like haste)
+    targetSaveMod = 0 #By defult
+    saveType = "Unknown"
+    saveDC = 0 #By defult it will always hit (for spells like haste)
 
-                critImmune = True
-                if spellSave == "ac":
-                    critImmune = False
-                    for condition in targetConditions.split(" "):
-                        if condition.startswith("minac"):
-                            targetAC = int(condition[5:]) #For spells like barkskin that set a minimum AC via a condition
-                    saveDC = targetAC
-                    saveType = "Ac"
-                elif spellSave in ["str", "dex", "con", "int", "wis", "cha"]:
-                    #if the spell requires a stat save
-                    saveDC = casterSpellSaveDC
-                    casterSpellAttBonus = 0 #Irrelevent in this case, set to 0
-                    saveType = spellSave
-                    
-                    targetSaveMod = int(targetStatMods.split("/")[int(["str", "dex", "con", "int", "wis", "cha"].index(str(spellSave)))])
-                    if spellSave in targetSavingThrows:
-                        targetSaveMod += targetProfBonus
+    critImmune = True
+    if spellSave == "ac":
+        critImmune = False
+        for condition in targetConditions.split(" "):
+            if condition.startswith("minac"):
+                targetAC = int(condition[5:]) #For spells like barkskin that set a minimum AC via a condition
+        saveDC = targetAC
+        saveType = "Ac"
+    elif spellSave in ["str", "dex", "con", "int", "wis", "cha"]:
+        #if the spell requires a stat save
+        saveDC = casterSpellSaveDC
+        casterSpellAttBonus = 0 #Irrelevent in this case, set to 0
+        saveType = spellSave
+        
+        targetSaveMod = int(targetStatMods.split("/")[int(["str", "dex", "con", "int", "wis", "cha"].index(str(spellSave)))])
+        if spellSave in targetSavingThrows:
+            targetSaveMod += targetProfBonus
 
-                if spellDamage != "":
-                    # If the spell applies damage
-                    totalDamage = 0
-                    damageBreakdown = []
-                    crit = False  # default unless a crit occurs
-                    if "+" in spellDamage and spellDamage.count("d") == spellDamage.count("+")+1:
-                        splitDamages = spellDamage.split("+")
-                        splitDamageTypes = spellDamageType.split("/")
-                        rollToHit = 0
-                        for index, damageDiceForm in enumerate(splitDamages):
-                            damageType = splitDamageTypes[index] if index < len(splitDamageTypes) else splitDamageTypes[-1]
-                            partDamage, partDamageType, rollToHit, saved, partCrit = calc_damage(damageDiceForm.strip(), casterSpellAttBonus, 0, saveDC, targetSaveMod, damageType.strip(), targetVunResImm, casterConditions+"/"+targetConditions, spellOnSave.title(), advantage_override, critImmune, rollToHit)
-                            totalDamage += partDamage
-                            damageBreakdown.append("**" + str(partDamage) + damageType.strip().title() + "** (" + damageDiceForm.strip() + ")")
-                            print(str(partDamage) + damageType.strip().title() + " (" + damageDiceForm.strip() + ")")
-                            if partCrit:
-                                crit = True
-                        damage = totalDamage
-                    else: #Regular dice roll
-                        flatDamage = 0
-                        if spell.lower() in ["healing word", "player of healing", "mass healing word", "cure wounds"]: #Healing spells that add SpellcastingMod
-                            flatDamage = casterSpellAbilityMod
-                        elif "+" in spellDamage: #Regular dice roll + flat amount
-                            flatDamage = int(spellDamage.split("+")[1])
-                            spellDamage = spellDamage.split("+")[0]
-                        elif "+" not in spellDamage and "d" not in spellDamage: #Just a flat amount
-                            flatDamage = int(spellDamage)
-                            spellDamage = "0d0"
-                        damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus, flatDamage, saveDC, targetSaveMod, spellDamageType, targetVunResImm,casterConditions + "/" + targetConditions, spellOnSave.title(), advantage_override, critImmune)
-                        if spellDamage == "0d0": damageBreakdown.append("**" + str(damage*-1) + spellDamageType.title() + "** (" + str(flatDamage) + ")")
-                        elif damage > 0: damageBreakdown.append("**" + str(damage) + spellDamageType.title() + "** (" + spellDamage + spellDamageType.title() + ("+" + str(flatDamage) if flatDamage > 0 else "") + ")")
-                        elif damage < 0: damageBreakdown.append("**" + str(damage*-1) + spellDamageType.title() + "** (" + spellDamage + spellDamageType.title() + ("+" + str(flatDamage) if flatDamage > 0 else "") + ")")
+    if spellDamage != "":
+        # If the spell applies damage
+        totalDamage = 0
+        damageBreakdown = []
+        crit = False  # default unless a crit occurs
+        if "+" in spellDamage and spellDamage.count("d") == spellDamage.count("+")+1:
+            splitDamages = spellDamage.split("+")
+            splitDamageTypes = spellDamageType.split("/")
+            rollToHit = 0
+            for index, damageDiceForm in enumerate(splitDamages):
+                damageType = splitDamageTypes[index] if index < len(splitDamageTypes) else splitDamageTypes[-1]
+                partDamage, partDamageType, rollToHit, saved, partCrit = calc_damage(damageDiceForm.strip(), casterSpellAttBonus, 0, saveDC, targetSaveMod, damageType.strip(), targetVunResImm, casterConditions+"/"+targetConditions, spellOnSave.title(), advantage_override, critImmune, rollToHit)
+                totalDamage += partDamage
+                damageBreakdown.append("**" + str(partDamage) + damageType.strip().title() + "** (" + damageDiceForm.strip() + ")")
+                print(str(partDamage) + damageType.strip().title() + " (" + damageDiceForm.strip() + ")")
+                if partCrit:
+                    crit = True
+            damage = totalDamage
+        else: #Regular dice roll
+            flatDamage = 0
+            if spell.lower() in ["healing word", "player of healing", "mass healing word", "cure wounds"]: #Healing spells that add SpellcastingMod
+                flatDamage = casterSpellAbilityMod
+            elif "+" in spellDamage: #Regular dice roll + flat amount
+                flatDamage = int(spellDamage.split("+")[1])
+                spellDamage = spellDamage.split("+")[0]
+            elif "+" not in spellDamage and "d" not in spellDamage: #Just a flat amount
+                flatDamage = int(spellDamage)
+                spellDamage = "0d0"
+            damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus, flatDamage, saveDC, targetSaveMod, spellDamageType, targetVunResImm,casterConditions + "/" + targetConditions, spellOnSave.title(), advantage_override, critImmune)
+            if spellDamage == "0d0": damageBreakdown.append("**" + str(damage*-1) + spellDamageType.title() + "** (" + str(flatDamage) + ")")
+            elif damage > 0: damageBreakdown.append("**" + str(damage) + spellDamageType.title() + "** (" + spellDamage + spellDamageType.title() + ("+" + str(flatDamage) if flatDamage > 0 else "") + ")")
+            elif damage < 0: damageBreakdown.append("**" + str(damage*-1) + spellDamageType.title() + "** (" + spellDamage + spellDamageType.title() + ("+" + str(flatDamage) if flatDamage > 0 else "") + ")")
 
-                    if crit:
-                        spellDamage = "+".join(splitDamages if "+" in spellDamage else [spellDamage])
-                        # optionally double dice formula if needed elsewhere
-                else:
-                    # If it doesn't apply damage
-                    if saveDC <= 0:
-                        saved = False
-                        rollToHit = 0
-                    else:
-                        rollToHit = roll_dice(1, 20, targetSaveMod)
-                        saved = rollToHit >= saveDC
-                casterConditionsToApply = ""
-                targetConditionsToApply = ""
-                conditionsAlreadyPresent = ""
-                if saved == False and spellConditions != "":
-                    for condition in spellConditions:
-                        if condition.startswith("#"):
-                            casterConditionsToApply += " " + condition[1:]
-                            if "concentration" in condition: #If its concentration being self-applied, give reference to the spell
-                                casterConditionsToApply += ":" + spell.replace(" ", "|") + ":" + target.replace(" ", "|")
-                        elif condition.startswith("-"):
-                            condition = condition
-                            #remove_logic(target, condition[1:])
-                        elif condition in targetConditions:
-                            conditionsAlreadyPresent += " " + condition.title()
-                        else:
-                            targetConditionsToApply += " " + condition.title()
-                break #It will continue searching the file executing every spell tat starts with the entered spell if not broken here
+        if crit:
+            spellDamage = "+".join(splitDamages if "+" in spellDamage else [spellDamage])
+            # optionally double dice formula if needed elsewhere
+    else:
+        # If it doesn't apply damage
+        if saveDC <= 0:
+            saved = False
+            rollToHit = 0
+        else:
+            rollToHit = roll_dice(1, 20, targetSaveMod)
+            saved = rollToHit >= saveDC
+    casterConditionsToApply = ""
+    targetConditionsToApply = ""
+    conditionsAlreadyPresent = ""
+    if saved == False and spellConditions != "":
+        for condition in spellConditions:
+            if condition.startswith("#"):
+                casterConditionsToApply += " " + condition[1:]
+                if "concentration" in condition: #If its concentration being self-applied, give reference to the spell
+                    casterConditionsToApply += ":" + spell.replace(" ", "|") + ":" + target.replace(" ", "|")
+            elif condition.startswith("-"):
+                condition = condition
+                remove_logic(target, condition[1:])
+            elif condition in targetConditions:
+                conditionsAlreadyPresent += " " + condition.title()
+            else:
+                targetConditionsToApply += " " + condition.title()
+                        
     outputMessage = "*" + caster.title() + "* has casted *" + spell.title() + "* targeting *" + target.title() + "*"
     if spellSave == "ac": outputMessage += "\n:dart: Did the spell succeed?: " + ("❌" if saved else "✅") + " (" + str(rollToHit) + "Hit vs " + str(saveDC) + "Ac)"
     elif spellSave != "Unknown" and spellSave != "": outputMessage += "\n:dart: Did the spell succeed?: " + ("❌" if saved else "✅") + " (" + str(saveDC) + "SpellDC vs " + str(rollToHit) + spellSave.title() + ")"
@@ -359,7 +360,7 @@ async def attack(interaction: discord.Interaction, attacker: str, attack: str, t
                         bonusToHit += roll_dice(1, 4, 0) #Add an extra 1d4 to the attack roll
                         print("Bless activated ^")
                         extraOutput += "\n:book: Special effect 'Bless' triggered! (+1d4 to attack roll)"
-                        #remove_logic(attacker, "Bless")
+                        remove_logic(attacker, "bless")
                 
                 damage, damageType, rollToHit, saved, crit = calc_damage(fields[1], bonusToHit, bonusToDmg, targetAC, 0, damageType, targetVunResImm, attackerConditions+"/"+targetConditions, "Miss", advantage_override)
                 damageTotal += damage
@@ -698,11 +699,12 @@ async def encounter(interaction, command: str, info1: str = "", info2: str = "")
                             if turnsRemaining <= 0:
                                 turnsRemaining = turnsRemaining
                                 #Remove the condition if its expired
-                                #remove_logic(encounter_state["characterOrder"][encounter_state["currentIndex"]].title(), condition.title())
+                                remove_logic(encounter_state["characterOrder"][encounter_state["currentIndex"]].title(), condition.title())
                             elif turnsRemaining > 0:
                                 updatedCondition = conditionParts[0] + "." + str(turnsRemaining)
                                 #If its not expired, remove the (old) condition and add the updatedCondition (with its timer ticked down)
-                                #remove_logic(encounter_state["characterOrder"][encounter_state["currentIndex"]].title(), condition.title())
+                                print("Removing: " + condition.title() + ", from: " + encounter_state["characterOrder"][encounter_state["currentIndex"]].title() + ". Then adding: " + updatedCondition.title() + " to the same character.")
+                                remove_logic(encounter_state["characterOrder"][encounter_state["currentIndex"]].title(), condition.title())
                                 apply_effects("None", encounter_state["characterOrder"][encounter_state["currentIndex"]].title(), 0, " " + updatedCondition.title() + "/")
                     if len(fields[12].split(" ")) > 1: outputMessage += "\n:face_with_spiral_eyes: Your active conditions: " + str(fields[12].split(" ")[1:])
         focusMessage = await interaction.followup.send(outputMessage, view=ActionView())
@@ -812,36 +814,90 @@ async def apply(interaction: discord.Interaction, target: str, damage: int, cond
 @app_commands.describe(target="The character you want to remove the condition from.",condition="Condition you wish to remove from the target, give none for a list of conditions on the target.")
 async def remove(interaction: discord.Interaction, target: str, condition: str = ""):
     outputMessage = ""
+    extraConditionsToRemove = []
+    foundCondition = False
     with open("Zed\\characters.csv") as characterFile:
-        updatedCharFileLines = []
-        for line in characterFile.readlines():
-            fields = line.split(",")
-            if fields[0].lower().startswith(target.lower()):
-                if condition == "": #No condition was entered
-                    await interaction.response.send_message("Conditions active on " + target.title() + ": " + fields[12])
-                    return()
-                else:
-                    conditionList = [c.strip() for c in fields[12].split(" ")]
-                    for cond in conditionList:
+        characterFileContents = characterFile.readlines()
+    updatedCharFileLines = []
+    for line in characterFileContents:
+        fields = line.split(",")
+        if fields[0].lower().startswith(target.lower()):
+            if condition == "": #No condition was entered
+                await interaction.response.send_message("Conditions active on " + target.title() + ": " + fields[12])
+                return()
+            else:
+                conditionList = [c.strip() for c in fields[12].split(" ")]
+                for cond in conditionList:
+                    if cond.lower().startswith(condition.lower()): #if it matches the condition
+                        foundCondition = True
+                        condition = cond
+                        conditionList.remove(cond)
                         if "Ac." in cond: #If the condition modifies AC
                             acMod = int(cond[0:cond.index("Ac")])
-                            fields[5] = str(int(fields[5])-acMod)
-                            #Get the acMod and remove it from the target's ac
+                            fields[5] = str(int(fields[5])-acMod) #Get the acMod and remove it from the target's ac
                         if "save." in cond: #If the condition gives/removes a stat save advantage,
                             stat = cond[0:cond.index("save.")].upper() #includes the +/- at start
                             if stat.startswith("+") and stat in fields[9]: #If it adds the save, remove it (and target already is prof in the save)
                                 fields[9].remove("/" + stat[1:])
                             elif stat.startswith("-"): #If it removes the save, add it
                                 fields[9] += "/" + stat[1:]
-                    if condition in conditionList:
-                        conditionList.remove(condition)
-                    fields[12] = " ".join(conditionList)
-                    line = ",".join(fields)
-            updatedCharFileLines.append(line)
+                        if cond.lower().startswith("concentration"): #Removing concentration, so we also need to remove the spell effects
+                            spellConcentrating = cond.split(":")[1].replace("|", " ").strip() #Get the spell that the target is concentrating on
+                            spellConcentratingTarget = cond.split(":")[2].replace("|", " ").strip() #Get the target of the spell (to remove its conditions)
+                            with open("Zed\\spells.csv") as spellFile:
+                                for line in spellFile.readlines():
+                                    if line.split(",")[0].lower() == spellConcentrating:
+                                        spellConcentratingConditions = line.split(",")[8].strip() #Open the spell file, find the spell being concentrated on
+                                        for concentrationCond in spellConcentratingConditions.split(" "):
+                                            if concentrationCond.startswith("#"): #Remove self inflicted conditions, their not relevent here
+                                                spellConcentratingConditions = spellConcentratingConditions.replace(concentrationCond, "") 
+                                                spellConcentratingConditions = spellConcentratingConditions.strip()
+                                            extraConditionsToRemove.append(spellConcentratingTarget + "," + concentrationCond)
+                                            
+                fields[12] = " ".join(conditionList)
+                line = ",".join(fields)
+        updatedCharFileLines.append(line)
+    if not foundCondition:
+        await interaction.response.send_message(target.title() + " did not have '" + condition.title() + "' present as a condition.")
+        return()
     with open("Zed\\characters.csv", "w") as f:
         for line in updatedCharFileLines:
             f.write(line.strip() + "\n") #This will truncate the file (remove its contents) and write the updated lines in.
+
+    for extraCond in extraConditionsToRemove:
+        extraCondTarget = extraCond.split(",")[0]
+        extraCondCond = extraCond.split(",")[1]
+        remove_logic(extraCondTarget, extraCondCond)
+        print("Removed extra cond: " + extraCondCond + ", from: " + extraCondTarget)
     await interaction.response.send_message(condition.title() + " has been removed from " + target.title())
+
+def remove_logic(target: str, condition: str):
+    with open("Zed\\characters.csv") as characterFile:
+        characterFileContents = characterFile.readlines()
+    updatedCharFileLines = []
+    for line in characterFileContents:
+        fields = line.split(",")
+        if fields[0].lower().startswith(target.lower()):
+            conditionList = [c.strip() for c in fields[12].split(" ")]
+            for cond in conditionList:
+                if cond.lower().startswith(condition.lower()): #if it matches the condition
+                    condition = cond
+                    conditionList.remove(cond)
+                    if "Ac." in cond: #If the condition modifies AC
+                        acMod = int(cond[0:cond.index("Ac")])
+                        fields[5] = str(int(fields[5])-acMod) #Get the acMod and remove it from the target's ac
+                    if "save." in cond: #If the condition gives/removes a stat save advantage,
+                        stat = cond[0:cond.index("save.")].upper() #includes the +/- at start
+                        if stat.startswith("+") and stat in fields[9]: #If it adds the save, remove it (and target already is prof in the save)
+                            fields[9].remove("/" + stat[1:])
+                        elif stat.startswith("-"): #If it removes the save, add it
+                            fields[9] += "/" + stat[1:]
+            fields[12] = " ".join(conditionList)
+            line = ",".join(fields)
+        updatedCharFileLines.append(line)
+    with open("Zed\\characters.csv", "w") as f:
+        for line in updatedCharFileLines:
+            f.write(line.strip() + "\n") #This will truncate the file (remove its contents) and write the updated lines in.
 
 # Create character via DM (Direct Messages) structured conversation
 @client.tree.command(name="create_character", description="Create a character step-by-step for the encounter tracker.")
@@ -874,6 +930,7 @@ async def create_character(interaction: discord.Interaction):
             return
         modsList = [str((int(stat) - 10) // 2) for stat in statsList]
         statMods = "/".join(modsList)
+
         #HP
         await dmChannel.send("What is your **max HP**?")
         msgHp = await client.wait_for('message', check=check, timeout=300)
@@ -902,7 +959,6 @@ async def create_character(interaction: discord.Interaction):
 
         #Skill Proficiencies
         skillsList = ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"]
-
         skills_prompt = "\n".join([f"{i+1}. {skill}" for i, skill in enumerate(skillsList)])
         await dmChannel.send(f"Select your **skill proficiencies** by replying with numbers separated by commas (e.g., 3,6,12).\n\n{skills_prompt}")
         msgProficiencies = await client.wait_for('message', check=check, timeout=300)
@@ -919,7 +975,6 @@ async def create_character(interaction: discord.Interaction):
         weaponProficiencies = weaponProficiencies.replace("3", "MM")
         weaponProficiencies = weaponProficiencies.replace("4", "MR")
         weaponProficiencies = weaponProficiencies.split(",")
-
         proficiencies = "/".join([skillProficiencies] + weaponProficiencies)
 
         #Saving Throws
@@ -1313,20 +1368,19 @@ Graphics of some kind to make it more user-friendly and exciting to use, somewha
 DONE ~~Manual damage/healing & conditions for people who don't use the bot (like)~~
 DONE ~~Hiding, Helping, Dodgeing~~
 DONE ~~Allow a list of targets to be entered~~
-REJECTED **Give feedback on hp values on attack** Reason: Most DM's wont want to reveal their monster's HP bar to the players. Instead, if the 'character' is not marked with M- (for monster), I will give their remaining hp on turn start.
+REJECTED(Partly) ~~Give feedback on hp values on attack~~ Reason: Most DM's wont want to reveal their monster's HP bar to the players. Instead, if the 'character' is not marked with M- (for monster), I will give their remaining hp on turn start.
 DONE ~~Add the modifier to the dmg dice text~~
-Done ~~Target yourself~~
-Done ~~Abbility checks at will~~
-Done ~~Create a character~~
+DONE ~~Target yourself~~
+DONE ~~Abbility checks at will~~
+DONE ~~Create a character~~
 DONE ~~Check and remove concentration on dmg effects (and give feedback to the user if it is) ~~
-Partly done: Expand spell list, allow for multiple damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)
-^^^ There is a bug with this that makes the crits/hit rolls roll separately and can give unclear/incorrect crit damage and 'did this spell hit' text. Don't have time to fix before beta
-Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible
+DONE ~~Expand spell list, allow for multiple damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)~~
+DONE ~~Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible~~
 DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especially inaccurate when rolling more than one damage dice
 DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
 DONE ~~Make character creation easier~~
-Add 'effects' for spells that apply effects to the character but don't have a duration the same as conditions
-I have noticed the 'remove_logic' function was removed a while ago without a replacement being given (I will fix this next). Code referencing this nox-existant function will be commented out for now and some systems wont work as intented.
+DONE ~~Add 'effects' for spells that apply effects to the character but don't have a duration the same as conditions~~ Note: I remember missing something here, but I cant recall :(
+DONE ~~I have noticed the 'remove_logic' function was removed a while ago without a replacement being given (I will fix this next). Code referencing this nox-existant function will be commented out for now and some systems wont work as intented.~~
     """
 # Start the bot
 client.run("MY_TOKEN")
