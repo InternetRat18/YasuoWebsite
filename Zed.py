@@ -93,6 +93,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     #First we gain the relevent information from the caster & target
     spellSave = ""
     damage = 0
+    tempHpToApply = 0
     conditionsAlreadyPresent = ""
     targetConditionsToApply = ""
     casterConditionsToApply = ""
@@ -134,7 +135,6 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
             fields = [s.lower() for s in fields]
             fields = [s.strip() for s in fields]
             #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
-            print(fields[0])
             if fields[0].startswith(spell):
                 spell = fields[0]
                 #Select the line with the spell info
@@ -216,6 +216,9 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                 spellDamage = "0d0"
             damage, damageType, rollToHit, saved, crit = calc_damage(spellDamage, casterSpellAttBonus, flatDamage, saveDC, targetSaveMod, spellDamageType, targetVunResImm,casterConditions + "/" + targetConditions, spellOnSave.title(), advantage_override, critImmune)
             if spellDamage == "0d0": damageBreakdown.append("**" + str(damage*-1) + spellDamageType.title() + "** (" + str(flatDamage) + ")")
+            if spellDamageType.lower() == "temphp":
+                tempHpToApply = damage
+                damage = 0
             elif damage > 0: damageBreakdown.append("**" + str(damage) + spellDamageType.title() + "** (" + spellDamage + spellDamageType.title() + ("+" + str(flatDamage) if flatDamage > 0 else "") + ")")
             elif damage < 0: damageBreakdown.append("**" + str(damage*-1) + spellDamageType.title() + "** (" + spellDamage + spellDamageType.title() + ("+" + str(flatDamage) if flatDamage > 0 else "") + ")")
 
@@ -252,7 +255,8 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     elif spellSave != "Unknown" and spellSave != "": outputMessage += "\n:dart: Did the spell succeed?: " + ("❌" if saved else "✅") + " (" + str(saveDC) + "SpellDC vs " + str(rollToHit) + spellSave.title() + ")"
     #if damage > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage) + spellDamageType.title() + "** (" + spellDamage + "+" + str(casterSpellAttBonus) + ")"
     if damage > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: " + " & ".join(damageBreakdown)
-    if damage < 0: outputMessage += "\n:heart:  Target healed a total effective amount of: " + " & ".join(damageBreakdown)
+    if damage < 0: outputMessage += "\n:heart: Target healed a total effective amount of: " + " & ".join(damageBreakdown)
+    if tempHpToApply != 0: outputMessage += "\n:blue_heart: Target was granted " + str(tempHpToApply) + " temporary HP."
     if conditionsAlreadyPresent.strip() != "": outputMessage += "\n:warning:These conditions were already present: " + conditionsAlreadyPresent.strip().title()
     if targetConditionsToApply.strip() != "": outputMessage += "\n:face_with_spiral_eyes: The following conditions were applied: " + targetConditionsToApply.strip().title()
     if "concentration" in casterConditionsToApply.strip(): outputMessage += "\n:eye: Self condiitons applied: " + casterConditionsToApply.strip().title()
@@ -260,7 +264,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     if upcast_level > 0: outputMessage += "\n:magic_wand: Attempted  to upcast " + spell.title() + " to level " + str(upcast_level)
     if advantage_override != "none": outputMessage += "\n:warning:Manual (Dis)Advantage Override was given: " + advantage_override
     #Now we write the effects to the the char file updated (There is a characterBK.csv file to restore it to its original) and remove the action from the player.
-    applyEffectsReturnString = apply_effects(caster, target, damage, targetConditionsToApply+"/"+casterConditionsToApply)
+    applyEffectsReturnString = apply_effects(caster, target, damage, targetConditionsToApply+"/"+casterConditionsToApply, "none", tempHpToApply)
     if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
     if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
     return(outputMessage, spellActionUsage, caster)
@@ -1102,24 +1106,22 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
 
 # Slash command: /Roll_ability
 @client.tree.command(name="roll_ability", description="This command will reset the character database using the backup.")
-@app_commands.describe(roller="Character that is making the ability check.", ability="The ability you want to check, weather it be a skill or stat.", advantage_override="Give (dis)advantage?")
+@app_commands.describe(roller="Character that is making the ability check.", ability="The ability you want to check, weather it be a skill or stat.", advantage_override="Give (dis)advantage?", passive="If it should return the average roll. (False by defult)")
 @app_commands.choices(
     advantage_override=[app_commands.Choice(name="Dis-advantage", value="disadvantage"),
                         app_commands.Choice(name="advantage", value="advantage")],
     ability=[app_commands.Choice(name=cond, value=cond) for cond in ["STR", "DEX", "CON", "INT", "WIS", "CHA", "Athletics", "Acrobatics", "Sleight of Hand", "Stealth", "Arcana", "History", "Investigation", "Nature", "Religion", "Animal Handling", "Insight", "Medicine", "Perception", "Survival", "Deception", "Intimidation", "Performance", "Persuasion"][:25]])
-async def roll_ability(interaction: discord.Interaction, roller: str, ability: str, advantage_override: str = "None"):
+async def roll_ability(interaction: discord.Interaction, roller: str, ability: str, advantage_override: str = "None", passive: bool = False):
     with open("Zed\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",") #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
             if fields[0].lower().startswith(roller.lower()):
                 roller = fields[0] #Find the targets full name
 
-    if ability in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
-        #Regular stat check
-        await interaction.response.send_message(":game_die: " + roller.title() + ", your  " + ability + " check rolled a: " + str(ability_check(roller, ability, "None", advantage_override)) + ".")
+    if ability in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]: #Regular stat check/Saving Throw
+        await interaction.response.send_message(roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, ability, "None", advantage_override, passive)) + ".")
         return()
-    else:
-        #Ability check
+    else: #Ability check
         releventStat = "Unknown"
         if ability == "Athletics":
             releventStat = "STR"
@@ -1131,7 +1133,7 @@ async def roll_ability(interaction: discord.Interaction, roller: str, ability: s
             releventStat = "WIS"
         elif ability in ["Deception", "Intimidation", "Performance", "Persuasion"]:
             releventStat = "CHA"
-        await interaction.response.send_message(roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability, advantage_override)) + ".")
+        await interaction.response.send_message(roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability, advantage_override, passive)) + ".")
 
 #function to Roll X sided dice, Y times
 def roll_dice(dice_count: int, dice_sides: int, modifier: int = 0) -> int:
@@ -1148,8 +1150,8 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
     with open("Zed\\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",")  #Break line into list of values
-            if fields[0].lower().startswith(roller.lower()):
-                #If it's the target's line
+            fields = [s.strip() for s in fields]
+            if fields[0].lower().startswith(roller.lower()): #If it's the target's line
                 rollerStatMods = fields[3].split("/") #List STR/DEX/CON/INT/WIS/CHA
                 rollerProfBonus = int(fields[7])
                 rollerProficiencies = fields[8].split("/") #List
@@ -1158,16 +1160,25 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
 
     statIndex = ["STR","DEX","CON","INT","WIS","CHA"].index(abilityStat.upper())
     modifier = int(rollerStatMods[statIndex])
-    for ability in rollerProficiencies:
-        if ability == abilityCheck:
-            #If proficient, also add the prof bonus
-            modifier += rollerProfBonus
-        if ability == abilityCheck+"X2":
-            #If expert, add prof bonus twice
-            modifier += rollerProfBonus + rollerProfBonus
-    for condition in rollerConditions:
-        if condition.startswith(abilityCheck):
-            modifier += int(condition.replace(abilityCheck, " ")) #If a condition is present in format: [Ability][Modifier], and that ability is rolled, add tat modifer present to the roll.
+    if abilityCheck == "None": #Saving throw
+        for profSavingThrow in rollerSavingThrows: #Check each prof saving throw
+            if profSavingThrow == abilityStat: #If proficient
+                modifier += rollerProfBonus #add the prof bonus
+        for condition in rollerConditions:
+            if condition.startswith(abilityStat): #If a condition is present in format: [savingThrow][Modifier], add the (relevent) modifer to the roll.
+                modifier += int(condition.replace(abilityStat, "")) #e.g. STR+2
+            if condition.lower().startswith("bless"): #Spell specific bonus
+                modifier += roll_dice(1, 4) #Consume the bonus
+                remove_logic(roller, "bless") #Remove the bonus (its consumed)
+    else:
+        for ability in rollerProficiencies:
+            if ability == abilityCheck: #If proficient, also add the prof bonus
+                modifier += rollerProfBonus
+            if ability == abilityCheck+"X2": #If expert, add prof bonus twice
+                modifier += rollerProfBonus + rollerProfBonus
+        for condition in rollerConditions:
+            if condition.startswith(abilityCheck): #If a condition is present in format: [Skill][Modifier], add the (relevent) modifer to the roll.
+                modifier += int(condition.replace(abilityCheck, "")) #e.g. Stealth+10 (for 'Pass without trace')
     abilityRoll = roll_dice(1, 20, modifier)
     
     Advantage = False
@@ -1178,8 +1189,7 @@ def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: s
         alternateAbilityRoll = roll_dice(1, 20, modifier) #roll again
         if Disadvantage and alternateAbilityRoll < abilityRoll: abilityRoll = alternateAbilityRoll #Disadvantage, use it if its lower
         if Advantage and alternateAbilityRoll > abilityRoll: abilityRoll = alternateAbilityRoll #Advantage, use it if its higher
-    if passive:
-        #Take the average roll
+    if passive: #Take the average roll
         abilityRoll = 10 + modifier
     return(abilityRoll)
         
@@ -1257,7 +1267,7 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
     return(damage, damageType, rollToHit, saved, crit)
 
 #Function to write to character file (apply damage and conditions to attacker/caster)
-def apply_effects(attacker: str, target: str, damage: int, Conditions: str, DeathSave = "none") -> str:
+def apply_effects(attacker: str, target: str, damage: int, Conditions: str, DeathSave = "none", tempHP: int = 0) -> str:
     conditionsToApply = Conditions.split("/")
     targetConditionsToApply = conditionsToApply[0]
     casterConditionsToApply = conditionsToApply[1]
@@ -1274,6 +1284,7 @@ def apply_effects(attacker: str, target: str, damage: int, Conditions: str, Deat
             #If its the targets line
             #Applying dmg
             hpValues = fields[4].split("/") #Split the HP field ("65/0/65") into parts
+            hpValues[1] = str(int(hpValues[1]) + int(tempHP))
             if int(hpValues[1]) > int(damage) and int(damage) > 0:
                 #If the tempHp is higher than the dmg (and damage is positive, i.e. not healing)
                 hpValues[1] = str(max(0, int(hpValues[1]) - int(damage))) #Apply damage to the temp hp
