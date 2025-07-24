@@ -261,7 +261,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     if targetConditionsToApply.strip() != "": outputMessage += "\n:face_with_spiral_eyes: The following conditions were applied: " + targetConditionsToApply.strip().title()
     if "concentration" in casterConditionsToApply.strip(): outputMessage += "\n:eye: Self condiitons applied: " + casterConditionsToApply.strip().title()
     if crit is True: outputMessage += "\n:tada: CRITICAL HIT! Your damage dice was rolled twice"
-    if upcast_level > 0: outputMessage += "\n:magic_wand: Attempted  to upcast " + spell.title() + " to level " + str(upcast_level)
+    if upcast_level > 0: outputMessage += "\n:magic_wand: Attempted to upcast " + spell.title() + " to level " + str(upcast_level)
     if advantage_override != "none": outputMessage += "\n:warning:Manual (Dis)Advantage Override was given: " + advantage_override
     #Now we write the effects to the the char file updated (There is a characterBK.csv file to restore it to its original) and remove the action from the player.
     applyEffectsReturnString = apply_effects(caster, target, damage, targetConditionsToApply+"/"+casterConditionsToApply, "none", tempHpToApply)
@@ -287,7 +287,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                           app_commands.Choice(name="+3", value="3")],
     advantage_override=[app_commands.Choice(name="Dis-advantage", value="disadvantage"),
                         app_commands.Choice(name="advantage", value="advantage")])
-async def attack(interaction: discord.Interaction, attacker: str, attack: str, target: str, secondary_attack: str = "none", weapon_mod: str = "0", secondary_weapon_mod: str = "0", advantage_override: str = "none"):
+async def attack(interaction: discord.Interaction, attacker: str, attack: str, target: str, secondary_attack: str = "Null", weapon_mod: str = "0", secondary_weapon_mod: str = "0", advantage_override: str = "Null"):
     attack = attack.lower().strip()
     secondary_attack = secondary_attack.lower().strip()
     attacker = attacker.lower().strip()
@@ -793,24 +793,30 @@ class ActionView(View):
 # Slash command: /Apply
 @client.tree.command(name="apply", description="Manually apply damage, healing, or conditions to a character (typicly used by DM).")
 @app_commands.describe(target="The character you want to apply these effects to.",damage="The damage to apply to the target(0 for nothing, and negative for healing).",condition="Condition you wish to apply to the target",condition_duration="how many turns should the condition last (leave blank for no duration)")
-@app_commands.choices(condition=[app_commands.Choice(name=cond, value=cond) for cond in ["Invisible", "Hidden", "Surprised", "Flanking", "Helped", "FaerieFire", "GuidingBolt", "Unaware", "Blinded", "Prone", "Poisoned", "Restrained", "Grappled", "Obscured", "Exhaustion", "Silenced", "Dodging"][:25]])
+@app_commands.choices(condition=[app_commands.Choice(name=cond, value=cond) for cond in ["Invisible", "Hidden", "Surprised", "Flanking", "Helped", "FaerieFire", "GuidingBolt", "Unaware", "Blinded", "Prone", "Poisoned", "Restrained", "Grappled", "Obscured", "Exhaustion3", "Silenced", "Dodging", "Cursed", "Paralyzed"][:25]])
 async def apply(interaction: discord.Interaction, target: str, damage: int, condition: str = "", condition_duration: str = "0"):
+    targetFound = False
     with open("Zed\characters.csv") as characterFile:
         for line in characterFile.readlines():
             fields = line.split(",") #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
             if fields[0].lower().startswith(target.lower()):
                 target = fields[0] #Find the targets full name
-    
-    outputMessage = "The target has "
+                targetFound = True
+                break
+    if not targetFound:
+        await interaction.response.send_message(":exclamation: Target could not be found.")
+    outputMessage = target.title() + " has "
     if int(damage) >= 0: outputMessage += "taken " + str(damage) + " damage."
     elif int(damage) < 0: outputMessage += "been healed for " + str(int(damage)*-1) + " damage."
     if condition != "":
         outputMessage += "\n" + str(condition) + " has also been applied"
         if int(condition_duration) > 0:
             outputMessage += " for " + str(int(condition_duration)) + " rounds"
-            apply_effects("none", target, damage, " "+str(condition)+"."+condition_duration + "/")
-        else: apply_effects("none", target, damage, " "+str(condition)+"/")
+            returnString = apply_effects("none", target, damage, " "+str(condition)+"."+condition_duration + "/")
+        else: returnString = apply_effects("none", target, damage, " "+str(condition)+"/")
         outputMessage += "."
+    else: returnString = apply_effects("none", target, damage, "/")
+    if "TargetZeroHp" in returnString: outputMessage += "\n:skull: " +  target.title() + " has reached 0 HP."
     await interaction.response.send_message(outputMessage)
 
 # Slash command: /Remove
@@ -964,10 +970,20 @@ async def create_character(interaction: discord.Interaction):
         #Skill Proficiencies
         skillsList = ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"]
         skills_prompt = "\n".join([f"{i+1}. {skill}" for i, skill in enumerate(skillsList)])
-        await dmChannel.send(f"Select your **skill proficiencies** by replying with numbers separated by commas (e.g., 3,6,12).\n\n{skills_prompt}")
+        await dmChannel.send(f"Select your **skill proficiencies** by replying with numbers separated by commas.\nFor expertise, add 'E' afterwards (e.g., 3,6,12E).\nIf you have no skills, enter '0'.\n\n{skills_prompt}")
         msgProficiencies = await client.wait_for('message', check=check, timeout=300)
-        profIndexs = [int(x.strip())-1 for x in msgProficiencies.content.strip().split(',') if x.strip().isdigit()]
-        profSelected = [skillsList[i] for i in profIndexs if 0 <= i < len(skillsList)]
+        entries = [x.strip().upper() for x in msgProficiencies.content.strip().split(',')]
+        profSelected = []
+        for entry in entries:
+            expertise = entry.upper().endswith("E")
+            num_part = entry[:-2] if expertise else entry
+            if num_part.isdigit():
+                idx = int(num_part) - 1
+                if 0 <= idx < len(skillsList):
+                    skill = skillsList[idx]
+                    if expertise:
+                        skill += "X2"
+                    profSelected.append(skill)
         skillProficiencies = "/".join(profSelected)
 
         #Weapon Proficiencies
@@ -980,6 +996,9 @@ async def create_character(interaction: discord.Interaction):
         weaponProficiencies = weaponProficiencies.replace("4", "MR")
         weaponProficiencies = weaponProficiencies.split(",")
         proficiencies = "/".join([skillProficiencies] + weaponProficiencies)
+        if proficiencies.startswith("/"):
+            print("Anomoly Found. Correcting.") #Maybe happends when no skills are enteres.
+            proficiencies = proficiencies[1:]
 
         #Saving Throws
         await dmChannel.send("List your **saving throws you are proficient in**, separated by commas. (e.g., CON,WIS)")
@@ -1001,9 +1020,9 @@ async def create_character(interaction: discord.Interaction):
 
         #If confirmed, write it in both files (saves user having to /reset for character to work).
         if view.value:
-            with open("Zed/charactersBK.csv", "a") as f:
-                f.write(character_row + "\n")
-            with open("Zed/characters.csv", "a") as f:
+            with open("Zed\\charactersBK.csv", "a") as fBK:
+                fBK.write(character_row + "\n")
+            with open("Zed\\characters.csv", "a") as f:
                 f.write(character_row + "\n")
             await dmChannel.send(f"✅ {name} has been saved successfully!")
         else:
@@ -1238,6 +1257,7 @@ def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit:
         #Advantage, roll again and use it if it's higher
         alternateRollToHit = roll_dice(1, 20, bonusToHit + saveMod)
         if alternateRollToHit > rollToHit: rollToHit = alternateRollToHit
+    print("^Roll to hit(s)")
 
     if rollToHitOverride != 0: rollToHit = rollToHitOverride
     rollToHit = max(rollToHit, 1)
@@ -1390,7 +1410,7 @@ DONE ~~Note: Scope, No combat map, meaning no range. + As little things as hardc
 DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especially inaccurate when rolling more than one damage dice
 DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
 DONE ~~Make character creation easier~~
-DONE ~~Add 'effects' for spells that apply effects to the character but don't have a duration the same as conditions~~ Note: I remember missing something here, but I cant recall :(
+DONE ~~Add 'effects' for spells that apply effects to the character but don't have a duration the same as conditions~~
 DONE ~~I have noticed the 'remove_logic' function was removed a while ago without a replacement being given (I will fix this next). Code referencing this nox-existant function will be commented out for now and some systems wont work as intented.~~
     """
 # Start the bot
