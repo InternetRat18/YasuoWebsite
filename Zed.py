@@ -224,9 +224,7 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
 
         if crit:
             spellDamage = "+".join(splitDamages if "+" in spellDamage else [spellDamage])
-            # optionally double dice formula if needed elsewhere
-    else:
-        # If it doesn't apply damage
+    else: # If it doesn't apply damage
         if saveDC <= 0:
             saved = False
             rollToHit = 0
@@ -269,6 +267,57 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
     if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
     return(outputMessage, spellActionUsage, caster)
 
+def getCharacterInfo(character: str) -> tuple[dict, bool]:
+    characterFound = False
+    characterDict = {}
+    with open("Zed\\characters.csv") as characterFile:
+        for line in characterFile.readlines():
+            fields = line.split(",")
+            fields = [s.lower() for s in fields]
+            fields = [s.strip() for s in fields]
+            if fields[0].startswith(character):
+                characterDict = {"name": str(fields[0]),
+                                 "class": str(fields[1].split(" ")[0]),
+                                 "level": float(fields[1].split(" ")[1]),
+                                 "stats": [int(mod) for mod in str(fields[2]).split("/")[:6]],
+                                 "statMods": [int(mod) for mod in str(fields[3]).split("/")[:6]],
+                                 "HPMax": int(str(fields[4]).split("/")[0]),
+                                 "HPTemp": int(str(fields[4]).split("/")[1]),
+                                 "HPCurrent": int(str(fields[4]).split("/")[2]),
+                                 "AC": int(fields[5]),
+                                 "speed": int(fields[6]),
+                                 "profBonus": int(fields[7]),
+                                 "proficiencies": str(fields[8]),
+                                 "savingThrows": str(fields[9] + "/").split("/")[:-1][:6],
+                                 "deathSaves": str(fields[10]),
+                                 "VunResImm": str(fields[11]),
+                                 "vulnerabilities": str(fields[11]).split("/")[0].split(" ")[:20],
+                                 "resistances": str(fields[11]).split("/")[1].split(" ")[:20],
+                                 "immunities": str(fields[11]).split("/")[2].split(" ")[:20],
+                                 "conditions": str(fields[12]).split(" ")}
+                characterFound = True
+                break
+    return(characterDict, characterFound)
+
+def getAttackInfo(attack: str) -> tuple[dict, bool]:
+    attackFound = False
+    attackDict = {}
+    with open("Zed\\attacks.csv") as attacksFile:
+        for line in attacksFile.readlines():
+            fields = line.split(",")
+            fields = [s.lower() for s in fields]
+            fields = [s.strip() for s in fields]
+            if fields[0].startswith(attack):
+                attackDict = {"name": str(fields[0]),
+                              "damageDice": str(fields[1] + "+").split("+")[:-1][:5],
+                              "damageType": str(fields[2] + "/").split("/")[:-1][:5],
+                              "class": str(fields[3]),
+                              "properties": str(fields[4] + " ").split(" ")[:-1][:5],
+                              "conditions": str(fields[5])}
+                attackFound = True
+                break
+    return(attackDict, attackFound)
+            
 # Slash command: /Attack
 @client.tree.command(name="attack", description="For all Non-magical attacks")
 @app_commands.describe(attacker="The name of character who is attacking",
@@ -279,272 +328,113 @@ async def cast_logic(interaction, spell: str, target: str, caster: str, upcast_l
                        secondary_weapon_mod="If your secondary weapon is enchanted with a hit/damage modifier",
                        advantage_override="Used for special circumstances, where (dis)advantage is given outside of conditions* (*invisiility included*).")
 @app_commands.choices(
-    weapon_mod=[app_commands.Choice(name="+1", value="1"),
-                app_commands.Choice(name="+2", value="2"),
-                app_commands.Choice(name="+3", value="3")],
-    secondary_weapon_mod=[app_commands.Choice(name="+1", value="1"),
-                          app_commands.Choice(name="+2", value="2"),
-                          app_commands.Choice(name="+3", value="3")],
     advantage_override=[app_commands.Choice(name="Dis-advantage", value="disadvantage"),
                         app_commands.Choice(name="advantage", value="advantage")])
-async def attack(interaction: discord.Interaction, attacker: str, attack: str, target: str, secondary_attack: str = "Null", weapon_mod: str = "0", secondary_weapon_mod: str = "0", advantage_override: str = "Null"):
+async def attack(interaction: discord.Interaction, attacker: str, attack: str, target: str, secondary_attack: str = "none", weapon_mod: int = 0, secondary_weapon_mod: int = 0, advantage_override: str = "none"):
+    #'Sanitise' the user inputs
     attack = attack.lower().strip()
     secondary_attack = secondary_attack.lower().strip()
     attacker = attacker.lower().strip()
     target = target.lower().strip()
-    #'Sanitise' the user inputs
-    damageTotal = 0
-    damageDiceTotal = ""
-    seccondaryDamageDiceTotal = ""
-    attackerConditionsToApply = ""
-    targetConditionsToApply = ""
-    extraOutput = ""
-    #First, we gain the relevant information from the attacker & target
-    with open("Zed\\characters.csv") as characterFile:
-        for line in characterFile.readlines():
-            fields = line.split(",")
-            fields = [s.lower() for s in fields]
-            fields = [s.strip() for s in fields]
-            #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
-            if fields[0].startswith(attacker):
-                attacker = fields[0]
-                #Attacker line
-                attackerClass = fields[1].split(" ")[0]
-                attackerLevel = float(fields[1].split(" ")[1])
-                attackerStatMods = fields[3]
-                attackerProfBonus = int(fields[7])
-                attackerProficiencies = fields[8]
-                attackerConditions = fields[12]
-                
-            if fields[0].startswith(target):
-                target = fields[0]
-                #Target line
-                targetStatMods = fields[3]
-                targetAC = int(fields[5])
-                targetProfBonus = int(fields[7])
-                targetProficiencies = fields[8]
-                targetVunResImm = line.split(",")[11]
-                targetVulnerabilities = targetVunResImm[0]
-                targetResistances = targetVunResImm[1]
-                targetImmunities = targetVunResImm[2]
-                targetConditions = fields[12]
-    
-    with open("Zed\\attacks.csv") as attackFile:
-        for line in attackFile.readlines():
-            fields = line.split(",")
-            fields = [s.lower() for s in fields]
-            fields = [s.strip() for s in fields]
-            #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
-            if fields[0].startswith(attack) is True and "special" not in fields[3] and "secondaryattack" not in fields[3] and fields[1] != "":
-                attack = fields[0]
-                #If its the selected and valid attack, it has damage. Attacks marked as special will be dealt with separately. Attacks marked with SecondaryAttack can only be used as an optional extra attack. This is the execution of the main attack/weapon. Also 
-                attackProperties = fields[3]
-                bonusToHit = int(weapon_mod)
-                bonusToDmg = 0
-                damageType = fields[2]
-
-                #Calculate the bonus to the hit roll
-                strMod = attackerStatMods.split("/")[0]
-                dexMod = attackerStatMods.split("/")[1]
-                strMod, dexMod = int(strMod), int(dexMod)
-                if "finesse" in attackProperties:
-                    bonusToHit += max(strMod, dexMod)
-                elif fields[3][1:2] == "R":
-                    #Ranged Attack
-                    bonusToHit += dexMod
-                else:
-                    bonusToHit += strMod
-                bonusToDmg = bonusToHit
-                if fields[3].split(" ")[0] in attackerProficiencies.split("/") or fields[0] in attackerProficiencies.split("/"):
-                    #If the attacker is proficient in the attack/weapon
-                    bonusToHit += attackerProfBonus
-                    
-                for condition in attackerConditions.split(" "):
-                    if condition.startswith("bless"): #Attacker has the bless spell active
-                        bonusToHit += roll_dice(1, 4, 0) #Add an extra 1d4 to the attack roll
-                        print("Bless activated ^")
-                        extraOutput += "\n:book: Special effect 'Bless' triggered! (+1d4 to attack roll)"
-                        remove_logic(attacker, "bless")
-                
-                damage, damageType, rollToHit, saved, crit = calc_damage(fields[1], bonusToHit, bonusToDmg, targetAC, 0, damageType, targetVunResImm, attackerConditions+"/"+targetConditions, "Miss", advantage_override)
-                damageTotal += damage
-                if crit is False: damageDiceTotal += fields[1] + damageType.title() + "+" + str(bonusToDmg) + "+"
-                elif crit is True: damageDiceTotal += str(int(fields[1].split("d")[0])*2) + "d" + fields[1].split("d")[1] + damageType.title() + "+" + str(bonusToDmg) + "+"
-                #Count the total damage exclusively for writing back the (character) file
-                #Special effects:
-                if not saved:
-                    #if the attack hit
-                    if "hunters|mark" in attackerConditions and target.lower() in attackerConditions:
-                        #If the attacker is concentrating on hunters mark, on the target. Then add 1d6 dmg
-                        markDamage = roll_dice(1, 6, 0)
-                        damage += markDamage
-                        damageTotal += markDamage
-                        damageDiceTotal += "1d6+"
-                        extraOutput += "\n:book: Special effect 'Hunters Mark' triggered! (+1d6 to attack damage)"
-                
-            if fields[0].startswith(secondary_attack) is True and "special" not in fields[3]:
-                secondary_attack = fields[0]
-                #if secondary attack is entered, and not a special attack (i.e. attacker is duelweilding)
-                secondaryAttackType = "off-hand" #Used in interaction response
-                secondaryAttackProperties = fields[3]
-                bonusToHit = int(secondary_weapon_mod)
-                bonusToDmg = 0
-                secondaryAttackDamageType = fields[2]
-                #Calculate te bonus to the hit roll
-                strMod = attackerStatMods.split("/")[0]
-                dexMod = attackerStatMods.split("/")[1]
-                strMod, dexMod = int(strMod), int(dexMod)
-                if "finesse" in secondaryAttackProperties:
-                    bonusToHit += max(strMod, dexMod)
-                elif fields[3][1:2] == "R":
-                    #Ranged Attack
-                    bonusToHit += dexMod
-                else:
-                    bonusToHit += strMod
-                bonusToDmg = bonusToHit
-                if fields[3].split(" ")[0] in attackerProficiencies.split("/"):
-                    #If attacker is proficient in the attack/weapon
-                    bonusToHit += attackerProfBonus
-
-                secondaryAttackDamage, secondaryAttackDamageType, secondaryAttackRollToHit, secondaryAttackSaved, secondaryAttackCrit = calc_damage(fields[1], bonusToHit, bonusToDmg, targetAC, 0, secondaryAttackDamageType, targetVunResImm, attackerConditions+"/"+targetConditions, "Miss", advantage_override)
-                damageTotal += secondaryAttackDamage
-                if secondaryAttackCrit is False: seccondaryDamageDiceTotal += fields[1] + secondaryAttackDamageType.title() + "+" + str(bonusToDmg) + "+"
-                elif secondaryAttackCrit is True: seccondaryDamageDiceTotal += str(int(fields[1].split("d")[0])*2) + "d" + fields[1].split("d")[1] + secondaryAttackDamageType.title() + "+" + str(bonusToDmg) + "+"
-
-                if not secondaryAttackSaved:
-                    #if the secondary attack hit
-                    if "hunters|mark" in attackerConditions and target.lower() in attackerConditions:
-                        #If the attacker is concentrating on hunters mark, on the target. Then add 1d6 dmg to the secondary attack
-                        markDamage = roll_dice(1, 6, 0)
-                        secondaryAttackDamage += markDamage
-                        damageTotal += markDamage
-                        seccondaryDamageDiceTotal += "1d6+"
-                        extraOutput += "\n:book: Special effect 'Hunters Mark' triggered from off-hand!"
-                
-            elif fields[0].startswith(secondary_attack) is True and "special" in fields[3]:
-                #If the seccondary attack is a special attack, these require unique logic and thus is easier to hard code them, especily due to them being so few 'special' attacks.
-                secondary_attack = fields[0]
-                if secondary_attack == "sneak attack":
-                    #If the attack is marked as 'sneak attack', we will make sure the attacker is able to use it. Because this attack relies to heavily on the main attack attributes, we will do the logic for this after this whole file has been read.
-                    if attackerClass != "rogue":
-                        await interaction.response.send_message(":exclamation: Only rogues can use sneak attack.")
-                        return()
-
-            if fields[0].startswith(attack) is True and "special" in fields[3] and "secondaryattack" not in fields[3]:
-                #Do the logic for primary special attacks entered here. Each one is unique and will be hard coded due to this and how few of them there are. Special secondary attacks will be done outside of this open() statement.
-                attack = fields[0]
-                if attack == "grapple":
-                    #Grapple special attack
-                    if "grappling" in attackerConditions:
-                        await interaction.response.send_message(":exclamation: You are already grappling something.")
-                        return()
-                    elif "grappled" in targetConditions:
-                        await interaction.response.send_message(":exclamation: That target is already grappled.")
-                        return()
-                    attackProperties = "light" #Allows the use of an off-hand weapon
-                    attackerStrMod = int(attackerStatMods.split("/")[0])
-                    targetAthleticsMod = int(targetStatMods.split("/")[0])
-                    targetAcrobaticsMod = int(targetStatMods.split("/")[1])
-                    
-                    #Roll the attacker Athletics check
-                    if "athletics" in attackerProficiencies:
-                        attackerAthleticsCheck = roll_dice(1, 20, attackerStrMod+attackerProfBonus)
-                    else:
-                        attackerAthleticsCheck = roll_dice(1, 20, attackerStrMod)
-                    if "athletics" in targetProficiencies: targetAthleticsMod += targetProfBonus
-                    if "acrobatics" in targetProficiencies: targetAcrobaticsMod += targetProfBonus
-                    targetContestRoll = roll_dice(1, 20, max(targetAthleticsMod, targetAcrobaticsMod))
-                    if attackerAthleticsCheck >= targetContestRoll:
-                        saved = False
-                        attackerConditionsToApply += " Grappling:" + target.title()
-                        targetConditionsToApply += " Grappled"
-                    else:
-                        saved = True
-                    damage = 0
-                    crit = False
-                    grappleSkill = ""
-                    if targetAcrobaticsMod > targetAthleticsMod:
-                        grappleSkill = "acrobatics"
-                    else:
-                        grappleSkill = "athletics"
-                elif attack == "net":
-                    damage = 0
-                    crit = False
-                    attackMod = int(attackerStatMods.split("/")[1])
-                    if "mr" in attackerProficiencies:
-                        attackMod += attackerProfBonus
-                    rollToHit = roll_dice(1, 20, attackMod)
-                    if rollToHit >= targetAC:
-                        saved = False
-                        targetConditionsToApply += " Restrained"
-                    else:
-                        saved = True
-                        
-    #Do the logic for secondary special attacks now, as they rely on the main attack attributes.
-    if secondary_attack == "sneak attack":
-        secondary_attack = "none"
-        if saved == False:
-            #If the main attack hit
-            sneakAttackDiceCount = int(float((attackerLevel+1)/2))
-            if crit is False:
-                sneakAttackDamage = roll_dice(sneakAttackDiceCount, 6, 0)
-                damageDiceTotal += str(sneakAttackDiceCount) + "d6" + damageType.title() + "+"
-            elif crit is True:
-                damageDiceTotal += str(sneakAttackDiceCount*2) + "d6" + damageType.title() + "+"
-                sneakAttackDamage = roll_dice(sneakAttackDiceCount*2, 6, 0)
-            damage += sneakAttackDamage
-            damageTotal += sneakAttackDamage
-                
-    #Quick check to see if duel wielding was used it was valid
-    if secondary_attack != "none" and attack != "grapple" and attack != "net":
-        #If secondary attack was entered (some special attacks dont want this to trigger, thus secondary_attack may = none, even if one was entered at this point). If grappled was used, the secondary attack wont get advantage as it should due to effects being applied at the end of this code, so dont let it happen.
-        attackProperties = attackProperties.split(" ")
-        secondaryAttackProperties = secondaryAttackProperties.split(" ")
-        if "light" not in attackProperties or ("light" not in secondaryAttackProperties and "special" not in secondaryAttackProperties):
-            await interaction.response.send_message(":exclamation: That duel weilding request is not valid.")
+    #Setup some varaibles.
+    outputMessage, extraOutput, preferedSkill, targetConditionsToApply, attackerConditionsToApply = "", "", "", "", ""
+    bonusToHit, bonusToDmg, secBonusToHit, secBonusToDmg, attackRollToHit, secAttackRollToHit = 0, 0, 0, 0, 0, 0
+    attackDamages, attackDamageTypes, secAttackDamages, secAttackDamageTypes = [], [], [], []
+    attackSaved, attackCrit, secAttackSaved, secAttackCrit = False, False, False, False
+    #Next get the relevant information from the attacker, target, and attack files. (This will be rewriteen when SQL is integrated.)
+    attackerDict, attackerFound = getCharacterInfo(attacker)
+    targetDict, targetFound = getCharacterInfo(target)
+    attackDict, attackFound = getAttackInfo(attack)
+    secAttackDict, secAttackFound = getAttackInfo(secondary_attack)
+    #If any were not found, tell the user and stop.
+    if not attackerFound:
+        await interaction.response.send_message("Attacker was not found, check input and try again.")
+        return()
+    if not targetFound:
+        await interaction.response.send_message("Target was not found, check input and try again.")
+        return()
+    if not attackFound:
+        await interaction.response.send_message("Attack was not found, check input and try again.")
+        return()
+    if secondary_attack != "none" and not secAttackFound:
+        await interaction.response.send_message("Secondary attack was not found, check input and try again.")
+        return()
+    #Ensure read data is valid, this is not rigorous.
+    if len(attackDict["damageType"]) > 1 and len(attackDict["damageDice"]) !=  len(attackDict["damageType"]):
+        await interaction.response.send_message("The main attack has invalid damage:type ratio.")
+        return()
+    if "grappling" in attackerDict["conditions"] and (attackFound or secAttackFound):
+        await interaction.response.send_message("Attacking while grappling a creature is not allowed. You may use /remove to stop grappling")
+        return()
+    if secondary_attack != "none":
+        if len(secAttackDict["damageType"]) > 1 and len(secAttackDict["damageDice"]) !=  len(secAttackDict["damageType"]):
+            await interaction.response.send_message("The off-hand attack has invalid damage format.")
             return()
-        #If it was invalid, say so and stop the execution of further code. We will now format the output message for duel weilding
-        outputMessage = "*" + attacker.title() + "* has used *" + attack.title() + "*&*" + secondary_attack.title() + "* targeting *" + target.title() + "*"
-        if attack != "grapple": outputMessage += "\n:dart: Did the main attack hit?: " + ("✅" if not saved else "❌") + " (" + str(rollToHit) + "Hit vs " + str(targetAC) + "Ac)"
-        elif attack == "grapple": outputMessage += "\n:dart: Did the Grapple succeed?: " + ("✅" if not saved else "❌") + " (" + str(attackerAthleticsCheck) + "Athletics vs" + str(targetAC) + "Ac)"
-        outputMessage += "\n:dart: Did the off-hand attack hit?: " + ("✅" if not secondaryAttackSaved else "❌") + " (" + str(secondaryAttackRollToHit) + "Hit vs " + str(targetAC) + "Ac)"
-        if extraOutput != "": outputMessage += extraOutput #Extra info from special effects
-        if damageTotal > 0 and damageType == secondaryAttackDamageType: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage+secondaryAttackDamage) + damageType.title() + "**"
-        elif damageTotal > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage) + damageType.title() + "** & **" + str(secondaryAttackDamage) + secondaryAttackDamageType.title() + "**"
-        if not saved: outputMessage += " (" + damageDiceTotal[:-1] + ")"
-        if not saved and not secondaryAttackSaved: outputMessage += " +"
-        if not secondaryAttackSaved: outputMessage += " (" + seccondaryDamageDiceTotal[:-1] + ")"
-        if crit is True: outputMessage += "\n:tada: CRITICAL HIT! Your main attack damage dice was rolled twice"
-        if secondaryAttackCrit is True: outputMessage += "\n:tada: CRITICAL HIT! Your off-hand attack damage dice was rolled twice"
-        if targetConditionsToApply != "": outputMessage +="\n:face_with_spiral_eyes: The following conditions were applied:" + targetConditionsToApply
-        if advantage_override != "none": outputMessage += "\n:warning:Manual (Dis)Advantage Override was given: " + advantage_override
-        applyEffectsReturnString = apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply)
-        if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
-        if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
-        await interaction.response.send_message(outputMessage)
-        await encounter(interaction, "remove action", "action", attacker)
-        await encounter(interaction, "remove action", "bonus action", attacker) 
-    else:
-        #No secondary attack was given, and the attack wasn't a grapple
-        outputMessage = "*" + attacker.title() + "* has used *" + attack.title() + "* targeting *" + target.title() + "*"
-        if attack != "grapple": outputMessage += "\n:dart: Did the attack hit?: " + ("✅" if not saved else "❌") + " (" + str(rollToHit) + "Hit vs " + str(targetAC) + "Ac)"
-        elif attack == "grapple": outputMessage += "\n:dart: Did the Grapple succeed?: " + ("✅" if not saved else "❌") + " (" + str(attackerAthleticsCheck) + "Athletics vs " + str(targetContestRoll) + grappleSkill.title() + ")"
-        if extraOutput != "": outputMessage += extraOutput #Extra info from special effects
-        if damage > 0: outputMessage += "\n:crossed_swords: Target took a total effective dmg of: **" + str(damage) + damageType.title() + "** (" + damageDiceTotal[:-1] + ")"
-        if crit is True: outputMessage += "\n:tada: CRITICAL HIT! Your damage dice was rolled twice"
-        if targetConditionsToApply != "": outputMessage +="\n:face_with_spiral_eyes: The following conditions were applied:" + targetConditionsToApply
-        if advantage_override != "none": outputMessage += "\n:warning:Manual (Dis)Advantage Override was given: " + advantage_override
-        if secondary_attack != "none":
-            if attack == "grapple": outputMessage += "\n:warning: Secondary attacks used while attemping a grapple may not gain advantage. Your secondary attack has been canceled."
-            if attack == "net": outputMessage += "\n:warning: After using the net attack, you may not use any other attacks this turn."
-            damageTotal -= secondaryAttackDamage
-        applyEffectsReturnString = apply_effects(attacker, target, damageTotal, targetConditionsToApply + "/" + attackerConditionsToApply)
-        if "TargetZeroHp" in applyEffectsReturnString: outputMessage += "\n:skull: " + target.title() + " has reached zero(0) hit points."
-        if "ConcentrationBroken" in applyEffectsReturnString: outputMessage += "\n:eye: " + target.title() + " has broken their concentration."
-        await interaction.response.send_message(outputMessage)
-        await encounter(interaction, "remove action", "action", attacker)
-    #The effects were written to the the char file updated (There is a characterBK.csv file to restore it to its original) and the action was removed from the player.
-    
+        if ("light" not in secAttackDict["properties"] or "light" not in attackDict["properties"]) or "special" not in secAttackDict["properties"]:
+            await interaction.response.send_message("That duel-weilding request was not valid.")
+            return()
+    #Special attacks dont need to execute the full logic, do them seperately now.
+    print("CP1:" + str(attackDict["properties"]))
+    if "special" in attackDict["properties"]:
+        print("CP2:" + attackDict["name"])
+        if attackDict["name"] == "grapple":
+            print("CRETURE SIZE IS WANTED")
+            if ability_check(targetDict["name"], "STR", "athletics", "none", True) >= ability_check(targetDict["name"], "DEX", "acrobatics", "none", True): #Determine if the target is better at Athletics or Acrobatics
+                attackRollToHit, secAttackRollToHit, preferedSkill = ability_check(attackerDict["name"], "STR", "athletics"), ability_check(targetDict["name"], "STR", "athletics"), "Athletics"
+            else: attackRollToHit, secAttackRollToHit, preferedSkill = ability_check(attackerDict["name"], "STR", "athletics"), ability_check(targetDict["name"], "DEX", "acrobatics"), "Acrobatics"
+            attackSaved = False if attackRollToHit >= secAttackRollToHit else True
+            outputMessage += "*" + attacker.title() + "* used *" + attack.title() + "* targeting *" + target.title() + "*"
+            outputMessage += "\n:dart: Did the grapple succeed?: " + ("❌" if attackSaved else "✅") + " (" + str(attackRollToHit) + "Athletics vs " + str(secAttackRollToHit) + preferedSkill + ")"
+            if not attackSaved: attackerConditionsToApply += "grappling:" + targetDict["name"]
+            if not attackSaved: targetConditionsToApply += "grappled:" + attackerDict["name"]
+            await interaction.response.send_message(outputMessage)
+            return()
+        if attackDict["name"] == "net":
+            print("PLACEOLDER: NET")
+            print("CRETURE SIZE IS WANTED")
+    if secondary_attack != "none":
+        if "special" in secAttackDict["properties"]:
+            if secAttackDict["name"] == "sneak attack":
+                print("PLACEOLDER: SNEAK ATTACK")
+                secondary_attack = "none"
+    #Now deduce the bonusToHit
+    bonusToHit = weapon_mod
+    if "finesse" in attackDict["properties"]: bonusToHit += max(attackerDict["statMods"][0], attackerDict["statMods"][1])
+    elif attackDict["class"][1:2] == "r": bonusToHit += attackerDict["statMods"][1]
+    else: bonusToHit += attackerDict["statMods"][0]
+    bonusToDmg = bonusToHit
+    if attackDict["class"] in attackerDict["proficiencies"] or attackDict["name"] in attackerDict["proficiencies"]: bonusToHit += attackerDict["profBonus"]
+    if secAttackFound: #Similar code for secAttack:
+        secBonusToHit = secondary_weapon_mod
+        if "finesse" in secAttackDict["properties"]: secBonusToHit += max(attackerDict["statMods"][0], attackerDict["statMods"][1])
+        elif secAttackDict["class"][1:2] == "r": secBonusToHit += attackerDict["statMods"][1]
+        else: secBonusToHit += attackerDict["statMods"][0]
+        secBonusToDmg = secBonusToHit
+        if secAttackDict["class"] in attackerDict["proficiencies"] or secAttackDict["name"] in attackerDict["proficiencies"]: secBonusToHit += attackerDict["profBonus"]
+    for condition in attackerDict["conditions"]:
+        if condition.startswith("bless"):
+            bonusToHit += roll_dice(1, 4, 0)
+            extraOutput += "\n:book: Special effect 'Bless' triggered! (+1d4 to attack roll)"
+            remove_logic(attackerDict["name"], "bless")
+        if "hunters|mark" in condition:
+            bonusToDmg, secBonusToDmg = bonusToDmg + roll_dice(1, 6), secBonusToDmg + roll_dice(1, 6)
+            extraOutput += "\n:book: Special effect 'Hunters Mark' triggered! (+1d6 to attack(s) damage)"
+    #Roll damage
+    attackDamages, attackDamageTypes, attackRollToHit, attackSaved, attackCrit, attackFeedbackString = calc_damage(attackerDict["name"], targetDict["name"], attackDict["damageDice"], attackDict["damageType"], bonusToHit, bonusToDmg, targetDict["AC"], 0, "miss", advantage_override)
+    if secAttackFound: secAttackDamages, secAttackDamageTypes, secAttackRollToHit, secAttackSaved, secAttackCrit, secAttackFeedbackString = calc_damage(attackerDict["name"], targetDict["name"], secAttackDict["damageDice"], secAttackDict["damageType"], secBonusToHit, secBonusToDmg, targetDict["AC"], 0, "miss", advantage_override)
+    #Format output
+    outputMessage += "*" + attacker.title() + "* used *" + attack.title() + "* targeting *" + target.title() + "*"
+    outputMessage += "\n:dart: Did the main attack hit?: " + ("❌" if attackSaved else "✅") + " (" + str(attackRollToHit) + "Hit vs " + str(targetDict["AC"]) + "AC)"
+    if attackCrit: outputMessage += "\n:tada: Your main attack CRITICAL HIT!"
+    if not attackSaved and len(attackDamages) >= 1: outputMessage += "\n:crossed_swords: The main attack delt: " + " + ".join(str(attackDamages[i]) + str(attackDamageTypes[i]).title() for i in range(len(attackDamages)))
+    if secAttackFound: outputMessage += "\n:dart: Did the off-hand attack hit?: " + ("❌" if secAttackSaved else "✅") + " (" + str(secAttackRollToHit) + "Hit vs " + str(targetDict["AC"]) + "AC)"
+    if secAttackFound and secAttackCrit: outputMessage += "\n:tada: Your off-hand attack CRITICAL HIT!"
+    if secAttackFound and not secAttackSaved and len(secAttackDamages) >= 1: outputMessage += "\n:crossed_swords: The off-hand attack delt " + str(secAttackDamages) + ":" + str(secAttackDamageTypes)
+    outputMessage += extraOutput
+    if advantage_override != "none": outputMessage += "\n:warning: Manual " + advantage_override.title() + " was given."
+    #YET TO DO: Special attacks, apply effects, remove actions
+    await interaction.response.send_message(outputMessage)
+        
 # Slash command: /Action
 @client.tree.command(name="action", description="For actions other than attacks during combat.")
 @app_commands.describe(character="The 'actionee' doing the acting.", action="The Action you want to perform.", target="Some actions require a target e.g. help or sometimes hide. Lists also work.")
@@ -1071,14 +961,6 @@ async def remove_character(interaction: discord.Interaction, character_name: str
     except Exception as e:
         await interaction.response.send_message(f"❌ An error occurred while attempting to remove the character: {e}")
 
-class CharacterProficienciesView(View):
-    def __init__(self):
-        super().__init__(timeout=600) #Max timeout time is 15mins (900s)
-
-    @discord.ui.button(label="Submit", style=ButtonStyle.primary)
-    async def action(self, interaction: Interaction, button: Button):
-        await interaction.response.send_message("Proficiencies submitted.", ephemeral=True)
-
 # Slash command: /Reset
 @client.tree.command(name="reset", description="This command will reset the character database using the backup.")
 async def reset(interaction: discord.Interaction):
@@ -1099,28 +981,24 @@ async def reset(interaction: discord.Interaction):
 @client.tree.command(name="roll", description="Roll any number of dice!")
 @app_commands.describe(dice="the dice you wish to roll, seperated by '+'. e.g. 1d20+4d6", modifier="any postitive (or negative) modifier you wish to add. e.g. +12 or -5")
 async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
-    totalResult = 0
+    totalResult = int(modifier)
     outputMessage = "Rolling: " + dice 
     if "+" not in dice: diceArguments = 0
     else: diceArguments = len(dice.split("+"))-1
     for i in range(diceArguments+1):
         diceRoll = dice.split("+")[i]
-        #Varables setup
         diceCount = int(diceRoll.split("d")[0])
         diceSides = int(diceRoll.split("d")[1])
-        diceResult = 0
         if diceCount == 0 or diceSides == 0: outputMessage += "\n- Nothing, no dice were rolled here. "
         else:
             outputMessage += "\n- " + str(diceSides) + "-sided dice; "
-            while diceCount > 0: #While the dice count and sides are positive
-                diceResult = random.randint(1, diceSides) #Roll a single dice
-                totalResult += diceResult #Add it to the total
-                diceCount -= 1 #Subtract that single dice from the count
-                if diceCount > 0: outputMessage += str(diceResult) + ", " #Add to outputMessage
-                elif diceCount == 0: outputMessage += str(diceResult) + ". " #Add to outputMessage
-    if modifier != 0:
-        outputMessage += "\n- Modifier: " + str(modifier) + ". "
-        totalResult += int(modifier)
+            while diceCount > 0:
+                diceResult = random.randint(1, diceSides)
+                totalResult += diceResult
+                diceCount -= 1
+                if diceCount > 0: outputMessage += str(diceResult) + ", "
+                elif diceCount == 0: outputMessage += str(diceResult) + ". "
+    if modifier != 0: outputMessage += "\n- Modifier: " + str(modifier) + ". "
     await interaction.response.send_message(outputMessage + "\n**Total: " + str(int(totalResult)) + "**")
 
 # Slash command: /Roll_ability
@@ -1130,161 +1008,140 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: int = 0):
     advantage_override=[app_commands.Choice(name="Dis-advantage", value="disadvantage"),
                         app_commands.Choice(name="advantage", value="advantage")],
     ability=[app_commands.Choice(name=cond, value=cond) for cond in ["STR", "DEX", "CON", "INT", "WIS", "CHA", "Athletics", "Acrobatics", "Sleight of Hand", "Stealth", "Arcana", "History", "Investigation", "Nature", "Religion", "Animal Handling", "Insight", "Medicine", "Perception", "Survival", "Deception", "Intimidation", "Performance", "Persuasion"][:25]])
-async def roll_ability(interaction: discord.Interaction, roller: str, ability: str, advantage_override: str = "None", passive: bool = False):
-    with open("Zed\characters.csv") as characterFile:
-        for line in characterFile.readlines():
-            fields = line.split(",") #Split the line into fields once here to save resources on always splitting it. Also 'sanatise' it with lower() and strip()
-            if fields[0].lower().startswith(roller.lower()):
-                roller = fields[0] #Find the targets full name
+async def roll_ability(interaction: discord.Interaction, roller: str, ability: str, advantage_override: str = "none", passive: bool = False):
+    #'Sanitise' user inputs
+    roller = roller.strip().lower()
+    ability = ability.strip().lower()
+    #Get the relevant information from the roller
+    rollerDict, rollerFound = getCharacterInfo(roller)
+    #Setup some varaibles
+    releventStat = "Unknown"
+    if ability not in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
+        if ability == "athletics": releventStat = "STR"
+        elif ability in ["acrobatics", "sleight of hand", "stealth"]: releventStat = "DEX"
+        elif ability in ["arcana", "history", "investigation", "nature", "Religion"]: releventStat = "INT"
+        elif ability in ["animal handling", "insight", "medicine", "perception", "survival"]: releventStat = "WIS"
+        elif ability in ["deception", "intimidation", "performance", "persuasion"]: releventStat = "CHA"
+    await interaction.response.send_message(roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability, advantage_override, passive)) + ".")
 
-    if ability in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]: #Regular stat check/Saving Throw
-        await interaction.response.send_message(roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, ability, "None", advantage_override, passive)) + ".")
-        return()
-    else: #Ability check
-        releventStat = "Unknown"
-        if ability == "Athletics":
-            releventStat = "STR"
-        elif ability in ["Acrobatics", "Sleight of Hand", "Stealth"]:
-            releventStat = "DEX"
-        elif ability in ["Arcana", "History", "Investigation", "Nature", "Religion"]:
-            releventStat = "INT"
-        elif ability in ["Animal Handling", "Insight", "Medicine", "Perception", "Survival"]:
-            releventStat = "WIS"
-        elif ability in ["Deception", "Intimidation", "Performance", "Persuasion"]:
-            releventStat = "CHA"
-        await interaction.response.send_message(roller.title() + ", your " + ability + " check rolled: " + str(ability_check(roller, releventStat, ability, advantage_override, passive)) + ".")
-
-#function to Roll X sided dice, Y times
+#function to Roll X sided dice, Y times with a Z mod
 def roll_dice(dice_count: int, dice_sides: int, modifier: int = 0) -> int:
     Total = modifier
     for i in range(dice_count):
         roll = random.randint(1, dice_sides)
+        Total += roll
         print("Natural roll: " + str(roll))
-        Total = Total + roll
     return(Total)
 
 #function to Roll ability checks/saving throws
-def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: str = "None", passive: bool = False):
-    #first get relevant information in the roller
-    with open("Zed\\characters.csv") as characterFile:
-        for line in characterFile.readlines():
-            fields = line.split(",")  #Break line into list of values
-            fields = [s.strip() for s in fields]
-            if fields[0].lower().startswith(roller.lower()): #If it's the target's line
-                rollerStatMods = fields[3].split("/") #List STR/DEX/CON/INT/WIS/CHA
-                rollerProfBonus = int(fields[7])
-                rollerProficiencies = fields[8].split("/") #List
-                rollerSavingThrows = fields[9].split("/") #List
-                rollerConditions = fields[12].split(" ") #List
-
-    statIndex = ["STR","DEX","CON","INT","WIS","CHA"].index(abilityStat.upper())
-    modifier = int(rollerStatMods[statIndex])
+def ability_check(roller: str, abilityStat: str, abilityCheck: str, advantage: str = "none", passive: bool = False) -> tuple[int, str]:
+    #'Sanitise' inputs
+    roller = roller.strip().lower()
+    abilityStat = abilityStat.strip().upper()
+    abilityCheck = abilityCheck.strip().lower()
+    advantage = advantage.strip().lower()
+    #Get the relevant information from the roller
+    rollerDict, rollerFound = getCharacterInfo(roller)
+    #Setup some varaibles
+    extraEffects = ""
+    #Dedeuce the modifier
+    modifier = int(rollerDict["statMods"][["STR","DEX","CON","INT","WIS","CHA"].index(abilityStat)])
     if abilityCheck == "None": #Saving throw
-        for profSavingThrow in rollerSavingThrows: #Check each prof saving throw
-            if profSavingThrow == abilityStat: #If proficient
-                modifier += rollerProfBonus #add the prof bonus
-        for condition in rollerConditions:
-            if condition.startswith(abilityStat): #If a condition is present in format: [savingThrow][Modifier], add the (relevent) modifer to the roll.
-                modifier += int(condition.replace(abilityStat, "")) #e.g. STR+2
-            if condition.lower().startswith("bless"): #Spell specific bonus
+        for profSavingThrow in rollerDict["savingThrows"]:
+            if profSavingThrow == abilityStat: modifier += rollerDict["profBonus"] #Proficiency
+        for condition in rollerDict["conditions"]:
+            if condition.startswith(abilityStat): modifier += int(condition.replace(abilityStat, "")) #e.g. STR+2 condition
+            if condition.startswith("bless"): #Spell specific bonus
                 modifier += roll_dice(1, 4) #Consume the bonus
+                extraEffects += "Bless"
                 remove_logic(roller, "bless") #Remove the bonus (its consumed)
     else:
-        for ability in rollerProficiencies:
-            if ability == abilityCheck: #If proficient, also add the prof bonus
-                modifier += rollerProfBonus
-            if ability == abilityCheck+"X2": #If expert, add prof bonus twice
-                modifier += rollerProfBonus + rollerProfBonus
-        for condition in rollerConditions:
-            if condition.startswith(abilityCheck): #If a condition is present in format: [Skill][Modifier], add the (relevent) modifer to the roll.
-                modifier += int(condition.replace(abilityCheck, "")) #e.g. Stealth+10 (for 'Pass without trace')
+        for ability in rollerDict["proficiencies"]:
+            if ability == abilityCheck: modifier += rollerDict["profBonus"] #Proficiency
+            if ability == abilityCheck+"X2": modifier += rollerDict["profBonus"] #Expertise
+        for condition in rollerDict["conditions"]:
+            if condition.startswith(abilityCheck): modifier += int(condition.replace(abilityCheck, "")) #e.g. Stealth+10 (for 'Pass without trace')
+    #Roll the ability and return result
     abilityRoll = roll_dice(1, 20, modifier)
-    
-    Advantage = False
-    Disadvantage = False
-    if advantage.lower() == "advantage": Advantage = True
-    elif advantage.lower() == "disadvantage": Disadvantage = True
-    if Disadvantage or Advantage:
-        alternateAbilityRoll = roll_dice(1, 20, modifier) #roll again
-        if Disadvantage and alternateAbilityRoll < abilityRoll: abilityRoll = alternateAbilityRoll #Disadvantage, use it if its lower
-        if Advantage and alternateAbilityRoll > abilityRoll: abilityRoll = alternateAbilityRoll #Advantage, use it if its higher
-    if passive: #Take the average roll
-        abilityRoll = 10 + modifier
+    alternateAbilityRoll = roll_dice(1, 20, modifier)
+    if advantage.lower() == "disadvantage" and alternateAbilityRoll < abilityRoll:
+        abilityRoll = alternateAbilityRoll #Disadvantage, use it if its lower
+        extraEffects += "Disadvantage"
+    elif advantage.lower() == "advantage" and alternateAbilityRoll > abilityRoll:
+        abilityRoll = alternateAbilityRoll #Advantage, use it if its higher
+        extraEffects += "Advantage"
+    if passive: abilityRoll = 10 + modifier #Take the average roll
     return(abilityRoll)
         
 #function to roll damage (accounting for crits, resistances, immunities and vulnerabilities)
-def calc_damage(damage_dice: str, bonusToHit: int, damageMod: int, contestToHit: int, saveMod: int, damageType: str, targetVunResImm: str, Conditions: str, onSave: str, advantage_override: str, critImmune: bool = False, rollToHitOverride: int = 0):
-    #example"  1d6, 2d10......,bonus to the hit roll, bonus damage,target AC/SpellDC, Stat Mod, type of damage, targets Vun/Res/Imm., attackerCon/targetCon, what happends on save, Adv override, If crits should be used, roll ot hit override.
-    if damageType == "healing": #If the spell heals; crit, roll to hit, VunResImm, etc are unnecessary
-        diceCount = int(damage_dice.split("d")[0])
-        diceSides = int(damage_dice.split("d")[1])
-        damage = roll_dice(diceCount, diceSides, damageMod)
-        print("Healing calculated to be: " + str(damage*-1))
-        return(damage*-1, "Healing", 0, False, False)
-        
-    targetVunResImmParts = targetVunResImm.split("/")
-    targetVulnerabilities = targetVunResImmParts[0]
-    targetResistances = targetVunResImmParts[1]
-    targetImmunities = targetVunResImmParts[2]
-    crit = False
-    saved = False
-
-    attackerConditions = Conditions.split("/")[0]
-    targetConditions = Conditions.split("/")[1]
-    #Find if the attack(er) has advantage/disadvantage now
+def calc_damage(attacker: str, target: str, damageDice: list, damageType: list, bonusToHit: int, bonusToDmg: int, contestDC: int, contestDCMod: int, onSave: str = "none", advantage_override: str = "none", applyCrits: bool = True, rollToHitOverride: int = 0) -> tuple[list, list, int, bool, bool, str]:
+    #'Sanatise' inputs
+    attacker = attacker.strip().lower()
+    target = target.strip().lower()
+    damageDice[:] = [str(value) for value in damageDice if "d" in value]
+    damageType[:] = [str(value) for value in damageType]
+    contestDC = max(contestDC, 0)
+    contestDCMod = max(contestDCMod, -contestDC)
+    onSave = onSave.strip().lower()
+    advantage_override = advantage_override.strip().lower()
+    rollToHitOverride = min(rollToHitOverride, 20)
+    rollToHitOverride = max(rollToHitOverride, 0)
+    #Setup some varaibles
+    saved, crit, advantage, disadvantage = False, False, False, False
+    rollToHit, alternateRollToHit, diceCount, diceSides = 0, 0, 0, 0
+    returnDamages, returnDamageTypes = [], []
+    feedbackString = ""
     attackerAdvantageConditons = ["Advantage", "Helped", "Flanking", "Hidden", "Invisible"] #Attacker has advantage if they have these
     attackerDisadvantageConditions = ["Blinded", "Frightened", "Poisoned", "Restrained", "Exhaustion3", "Disadvantage", "Prone", "Cursed"] #Attacker has disadvantage if they have these
     targetAdvantageCondtions = ["GuidingBolt", "Flanking", "Unaware", "Blinded", "Paralyzed", "Petrified", "Prone", "Restrained", "Stunned", "Unconscious", "FaerieFire", "Surprised"] #Attacker has advantage if the target has these
     targetDisadvantageConditions = ["HeavilyObscured", "Invisible", "Dodging"] #Attacker has disadvantage if te target has these
-    #Defining conditions that grant advantage/impose disadvantage on the attacker
-    Advantage = any(cond in attackerAdvantageConditons for cond in attackerConditions) #Boolean
-    if not Advantage: Advantage = any(cond in targetAdvantageCondtions for cond in targetConditions) #If advantage is not already true, ceck the targets conditions
-    Disadvantage = any(cond in attackerDisadvantageConditions for cond in attackerConditions) #Boolean
-    if not Disadvantage: Disadvantage = any(cond in targetDisadvantageConditions for cond in targetConditions) #If disadvantage is not already true, ceck the targets conditions
-    if advantage_override == "disadvantage": Disadvantage = True
-    elif advantage_override == "advantage": Advantage = True
-    #Assigns the override value if given (default is advantage_override = "None")
-    rollToHit = roll_dice(1, 20, bonusToHit + saveMod)
-    #Takes the initial roll, we will now check on advantage and disadvantage to see if we roll again (and use that one instead)
-    if Disadvantage and Advantage:
-        #Normal roll (cancel out), this is needed otherwise disadvantage would have priority over advantage
-        rollToHit = rollToHit
-    elif Disadvantage:
-        #Disadvantage, roll again and use it if it's lower
-        alternateRollToHit = roll_dice(1, 20, bonusToHit + saveMod)
-        if alternateRollToHit < rollToHit: rollToHit = alternateRollToHit
-    elif Advantage:
-        #Advantage, roll again and use it if it's higher
-        alternateRollToHit = roll_dice(1, 20, bonusToHit + saveMod)
-        if alternateRollToHit > rollToHit: rollToHit = alternateRollToHit
-    print("^Roll to hit(s)")
-
-    if rollToHitOverride != 0: rollToHit = rollToHitOverride
-    rollToHit = max(rollToHit, 1)
-    if rollToHit < contestToHit:
-        #Attack missed the target
-        saved = True
-        #This will be used at the end
-
-    #Roll damage now
-    diceCount = int(damage_dice.split("d")[0])
-    diceSides = int(damage_dice.split("d")[1])
-    damage = roll_dice(diceCount, diceSides, damageMod)
-    if rollToHit-bonusToHit-saveMod == 20 and "crit" not in targetImmunities.lower() and not critImmune:
-        #Natural 20 e.g. critical hit
-        damage += roll_dice(diceCount, diceSides)
-        crit = True
-        saved = False
-        #Roll the dice twice
-    #Take into account the damage type now
-    if damageType in targetImmunities: damage = 0
-    elif damageType in targetResistances: damage = int(damage/2)
-    elif damageType in targetVulnerabilities: damage = damage*2
-    if saved is True:
-        if onSave == "Miss": damage = 0
-        elif onSave == "Half": damage = int(damage/2)
-    print("Damage calculated to be: " + str(damage))
-    return(damage, damageType, rollToHit, saved, crit)
+    #Gain relevent information from attacker and target.
+    attackerDict, attackerFound = getCharacterInfo(attacker)
+    targetDict, targetFound = getCharacterInfo(target)
+    #Validate data
+    if onSave not in ["miss", "half"]: onSave = "none"
+    if advantage_override not in ["advantage", "disadvantage"]: advantage_override = "none"
+    if len(damageType) > 1 and len(damageType) != len(damageDice):
+        print("calc_damage Error: Damage dice/type format incorrect.\ndamage_dice:" + damage_dice + "\ndamageType:" + damageType)
+        return()
+    if not attackerFound:
+        print("calc_damage Error: Attacker not found. Attacker:" + attacker)
+        return()
+    if not targetFound:
+        print("calc_damage Error: Target not found. Target:" + target)
+        return()
+    #Deduce (dis)advantage
+    advantage = any(cond in attackerAdvantageConditons for cond in attackerDict["conditions"])
+    if not advantage: advantage = any(cond in targetAdvantageCondtions for cond in targetDict["conditions"]) #If advantage is not already true, check the targets conditions
+    disadvantage = any(cond in attackerDisadvantageConditions for cond in attackerDict["conditions"])
+    if not disadvantage: disadvantage = any(cond in targetDisadvantageConditions for cond in targetDict["conditions"]) #If disadvantage is not already true, ceck the targets conditions
+    advantage, disadvantage = (advantage_override == "advantage"), (advantage_override == "disadvantage")
+    #Roll to hit, taking into account (dis)advantage
+    rollToHit = roll_dice(1, 20, bonusToHit)
+    if (advantage or disadvantage) and not (advantage and disadvantage): alternateRollToHit = roll_dice(1, 20, bonusToHit)
+    if advantage and not disadvantage: rollToHit = max(rollToHit, alternateRollToHit)
+    if disadvantage and not advantage: rollToHit = min(rollToHit, alternateRollToHit)
+    print("^Roll to hit(s).")
+    crit = True if rollToHit-bonusToHit==20 and not "crit" in targetDict["immunities"] else False
+    saved = True if rollToHit<contestDC+contestDCMod and not crit else False
+    #Roll damage
+    for index, dice in enumerate(damageDice):
+        diceCount = int(dice.split("d")[0])
+        diceSides = int(dice.split("d")[1])
+        if crit: diceCount = diceCount*2
+        damage = int(roll_dice(diceCount, diceSides, bonusToDmg))
+        if bonusToDmg > 0: bonusToDmg = 0 #Apply dmg bonus once
+        if saved and onSave == "miss": damage = damage*0
+        if saved and onSave == "half": damage = damage/2
+        if damageType[index] in targetDict["immunities"]: damage = damage*0
+        elif damageType[index] in targetDict["resistances"]: damage = damage/2
+        elif damageType[index] in targetDict["vulnerabilities"]: damage = damage*2
+        print("Damage calculated to be: " + str(damage))
+        if damageType[index] in returnDamageTypes: returnDamages[returnDamageTypes.index(damageType[index])] += damage
+        elif damage > 0:
+            returnDamages.append(damage)
+            returnDamageTypes.append(damageType[index])
+    return(returnDamages, returnDamageTypes, rollToHit, saved, crit, feedbackString)
 
 #Function to write to character file (apply damage and conditions to attacker/caster)
 def apply_effects(attacker: str, target: str, damage: int, Conditions: str, DeathSave = "none", tempHP: int = 0) -> str:
@@ -1399,7 +1256,7 @@ Graphics of some kind to make it more user-friendly and exciting to use, somewha
 DONE ~~Manual damage/healing & conditions for people who don't use the bot (like)~~
 DONE ~~Hiding, Helping, Dodgeing~~
 DONE ~~Allow a list of targets to be entered~~
-REJECTED(Partly) ~~Give feedback on hp values on attack~~ Reason: Most DM's wont want to reveal their monster's HP bar to the players. Instead, if the 'character' is not marked with M- (for monster), I will give their remaining hp on turn start.
+REJECTED(Partly) ~~Give feedback on HP values on attack~~ Reason: Most DM's wont want to reveal their monsters' HP bar to the players. Instead, if the 'character' is not marked with M- (for monster), I will give their remaining hp on turn start.
 DONE ~~Add the modifier to the dmg dice text~~
 DONE ~~Target yourself~~
 DONE ~~Abbility checks at will~~
@@ -1407,11 +1264,13 @@ DONE ~~Create a character~~
 DONE ~~Check and remove concentration on dmg effects (and give feedback to the user if it is) ~~
 DONE ~~Expand spell list, allow for multiple damage dice sets/damage types (1 dice set for each damage type, like in the ice storm spell)~~
 DONE ~~Note: Scope, No combat map, meaning no range. + As little things as hardcoded as possible~~
-DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general and especially inaccurate when rolling more than one damage dice
+DONE ~~Saving throws can crit~~ also fixed saving throws being inaccurate in general, and especially inaccurate when rolling more than one damage dice
 DONE ~~Manual apply not 'autocorrecting' to a target, and condition applying not working in general~~
 DONE ~~Make character creation easier~~
 DONE ~~Add 'effects' for spells that apply effects to the character but don't have a duration the same as conditions~~
-DONE ~~I have noticed the 'remove_logic' function was removed a while ago without a replacement being given (I will fix this next). Code referencing this nox-existant function will be commented out for now and some systems wont work as intented.~~
+DONE ~~I have noticed the 'remove_logic' function was removed a while ago without a replacement being given (I will fix this next). Code referencing this nonexistent function will be commented out for now, and some systems won't work as intended.~~
+New character file system that includes creature type and size.
+Add an autocomplete for attacks/spells, targets and attackers/casters. This is still limited to 25 option,s but can work dynamically based on what is already present in the field.
     """
 # Start the bot
 client.run("MY_TOKEN")
